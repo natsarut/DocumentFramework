@@ -7,3 +7,6 @@ Built on .NET 10, the solution demonstrates a well-structured, scalable, and mai
 The solution is intended to serve both as a reference implementation for Clean Architecture best practices and as a ready-to-use foundation for enterprise-level applications that require long-term maintainability, extensibility, and high development efficiency.
 
 ## Key Features
+- Clean Architecture Using Repository Pattern: Layer separation with dependency inversion
+- Modern UI: Beautiful, responsive interface built with ASP.NET Core Blazor and Fluent UI Blazor
+- Real-time Communication: SignalR integration for live updates
