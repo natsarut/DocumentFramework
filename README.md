@@ -29,3 +29,14 @@ The solution is intended to serve both as a reference implementation for Clean A
 - **Application Core:** Core business entities and rules (no dependencies), business logic, interfaces, and DTOs
 - **Infrastructure:** External concerns (database, email, file system)
 - **HTTP API & Web UI:** HTTP APIs, Blazor components and user interface
+
+## Prerequisites
+- [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+- [Visual Studio 2026](https://visualstudio.microsoft.com) or [Rider](https://www.jetbrains.com/rider) or [Visual Studio Code](https://code.visualstudio.com)
+- [Docker Desktop](https://www.docker.com) (optional)
+
+## Database Support
+| Database | Provider Name | Status |
+|----------|---------------|--------|
+| SQL Server | mssql | Fully Supported |
+| PostgreSQL | postgresql | Fully Supported |
