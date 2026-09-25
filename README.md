@@ -10,3 +10,8 @@ The solution is intended to serve both as a reference implementation for Clean A
 - Clean Architecture Using Repository Pattern: Layer separation with dependency inversion
 - Modern UI: Beautiful, responsive interface built with ASP.NET Core Blazor and Fluent UI Blazor
 - Real-time Communication: SignalR integration for live updates
+- Enterprise Security: Multi-factor authentication, role-based access control
+- Advanced Data Grid: Sorting, filtering, pagination, and export capabilities
+- Docker Ready: Complete containerization support
+
+## Technology Stack
