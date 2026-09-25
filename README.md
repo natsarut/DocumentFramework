@@ -24,3 +24,8 @@ The solution is intended to serve both as a reference implementation for Clean A
 | Background Processing | Hosted services, in-memory queues |
 | Testing | xUnit, FluentAssertions, Moq |
 | DevOps | Docker |
+
+## Clean Architecture Layer Responsibilities
+- **Application Core:** Core business entities and rules (no dependencies), business logic, interfaces, and DTOs
+- **Infrastructure:** External concerns (database, email, file system)
+- **HTTP API & Web UI:** HTTP APIs, Blazor components and user interface
