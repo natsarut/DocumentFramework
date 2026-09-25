@@ -1,4 +1,4 @@
-# Document Framework
+# Document Framework (Report Services 2.0)
 ## Overview
 This repository provides a production-grade document solution designed in strict accordance with Clean Architecture using repository pattern principles and modern enterprise application standards.
 
@@ -15,3 +15,12 @@ The solution is intended to serve both as a reference implementation for Clean A
 - Docker Ready: Complete containerization support
 
 ## Technology Stack
+| Layer | Technologies |
+|-------|--------------|
+| Frontend | ASP.NET Core Blazor, Fluent UI Blazor, SignalR |
+| Backend | .NET 10, ASP.NET Core HTTP API |
+| Database | Entity Framework Core, MSSQL/PostgreSQL |
+| Authentication | ASP.NET Core Identity, OAuth 2.0, JWT |
+| Background Processing | Hosted services, in-memory queues |
+| Testing | xUnit, FluentAssertions, Moq |
+| DevOps | Docker |
