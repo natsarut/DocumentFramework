@@ -9,14 +9,35 @@ The solution is intended to serve both as a reference implementation for Clean A
 ## Key Features
 - **PDF Generator:** PDF generation using HTML and CSS
 - **Templating Engine:** Razor syntax
+- **Template Combination:** Two or more templates combination
 - **Multiple Data Sources:** Using JSON, XML
 - **Template Version:** Template versioning and active duration
-- **Clean Architecture Using Repository Pattern:** Layer separation with dependency inversion
+
+## Key Designs
+- **Microservices Architecture:** Small, loosely coupled, and independently deployable services
+- **Clean Architecture Using Repository Pattern:** Layer separation with dependency inversion in each service
 - **Modern UI:** Beautiful, responsive interface built with ASP.NET Core Blazor and Fluent UI Blazor
 - **Real-time Communication:** SignalR integration for live updates
 - **Enterprise Security:** Multi-factor authentication, role-based access control
 - **Advanced Data Grid:** Sorting, filtering, pagination, and export capabilities
 - **Docker Ready:** Complete containerization support
+
+## Clean Architecture Layer Responsibilities
+- **Application Core:** Core business entities and rules (no dependencies), business logic, interfaces, and DTOs
+- **Infrastructure:** External concerns (database, email, file system)
+- **HTTP API & Web UI:** HTTP APIs, Blazor components and user interface
+
+## Architecture Overview
+### Services
+1. Document Orchestrator Service
+   - The facade service for the Document Framework
+2. Template Model Service
+   - Map data from data source and create a model for the specified template in JSON format output
+3. Template Engine Service
+   - Render HTML from Razor markup in the template
+4. Document Converter Service
+   - Convert HTML to PDF document
+5. ...
 
 ## Technology Stack
 | Layer | Technologies |
@@ -28,11 +49,6 @@ The solution is intended to serve both as a reference implementation for Clean A
 | Background Processing | Hosted services, in-memory queues |
 | Testing | xUnit, FluentAssertions, Moq |
 | DevOps | Docker |
-
-## Clean Architecture Layer Responsibilities
-- **Application Core:** Core business entities and rules (no dependencies), business logic, interfaces, and DTOs
-- **Infrastructure:** External concerns (database, email, file system)
-- **HTTP API & Web UI:** HTTP APIs, Blazor components and user interface
 
 ## Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
