@@ -1,6 +1,6 @@
 # Document Framework (Report Services 2.0)
 ## Overview
-This repository provides a production-grade document solution designed in strict accordance with Clean Architecture using repository pattern principles and modern enterprise application standards.
+This repository provides a production-grade document solution designed in strict accordance with Microservices, Clean Architecture using repository pattern principles and modern enterprise application standards.
 
 Built on .NET 10, the solution demonstrates a well-structured, scalable, and maintainable architecture for developing complex business systems. It integrates advanced document generation capabilities, AI-assisted development workflows, and specification-driven design patterns, enabling teams to accelerate development while preserving architectural consistency and code quality.
 
@@ -28,6 +28,7 @@ The solution is intended to serve both as a reference implementation for Clean A
 - **HTTP API & Web UI:** HTTP APIs, Blazor components and user interface
 
 ## Architecture Overview
+![Architecture Diagram](./doc/architecture.png)
 ### Services
 1. Document Orchestrator Service
    - The facade service for the Document Framework
@@ -42,7 +43,7 @@ The solution is intended to serve both as a reference implementation for Clean A
 ## Technology Stack
 | Layer | Technologies |
 |-------|--------------|
-| Frontend | ASP.NET Core Blazor, Fluent UI Blazor, SignalR |
+| Frontend | ASP.NET Core Blazor, Fluent UI Blazor v5, SignalR |
 | Backend | .NET 10, ASP.NET Core HTTP API |
 | Database | Entity Framework Core, MSSQL/PostgreSQL |
 | Authentication | ASP.NET Core Identity, OAuth 2.0, JWT |
