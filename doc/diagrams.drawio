@@ -1,0 +1,137 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Architecture" id="w5hWuZH1VwvKS8dwqav4">
+    <mxGraphModel dx="926" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="862ci2YIQy45EAfYFc5y-36" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="560" width="120" x="560" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-9" edge="1" parent="1" source="862ci2YIQy45EAfYFc5y-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="862ci2YIQy45EAfYFc5y-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-18" connectable="0" parent="862ci2YIQy45EAfYFc5y-9" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="1" vertex="1">
+          <mxGeometry relative="1" x="0.5617" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-11" edge="1" parent="1" source="862ci2YIQy45EAfYFc5y-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="862ci2YIQy45EAfYFc5y-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-12" connectable="0" parent="862ci2YIQy45EAfYFc5y-11" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="HTTP sync. request" vertex="1">
+          <mxGeometry relative="1" x="-0.5607" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-19" connectable="0" parent="862ci2YIQy45EAfYFc5y-11" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="2" vertex="1">
+          <mxGeometry relative="1" x="0.2964" as="geometry">
+            <mxPoint x="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-13" edge="1" parent="1" source="862ci2YIQy45EAfYFc5y-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="862ci2YIQy45EAfYFc5y-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-20" connectable="0" parent="862ci2YIQy45EAfYFc5y-13" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="3" vertex="1">
+          <mxGeometry relative="1" x="0.5777" as="geometry">
+            <mxPoint x="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-1" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;fontColor=#4277BB;labelBackgroundColor=default;fontSize=6;spacingTop=3;image=img/lib/ibm/miscellaneous/microservices_application.svg;autosizeText=0;" value="&lt;span style=&quot;color: rgb(240, 246, 252); font-family: &amp;quot;Mona Sans VF&amp;quot;, -apple-system, BlinkMacSystemFont, &amp;quot;Segoe UI&amp;quot;, &amp;quot;Noto Sans Backtick Fix&amp;quot;, &amp;quot;Noto Sans&amp;quot;, Helvetica, Arial, sans-serif, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;; font-size: 16px; white-space: normal; background-color: rgb(13, 17, 23);&quot;&gt;Document Orchestrator Service&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="60" x="240" y="444" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-28" edge="1" parent="1" source="862ci2YIQy45EAfYFc5y-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=1;" target="862ci2YIQy45EAfYFc5y-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-2" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;fontColor=#4277BB;labelBackgroundColor=default;fontSize=12;spacingTop=3;image=img/lib/ibm/miscellaneous/microservices_application.svg;" value="&lt;span style=&quot;color: rgb(240, 246, 252); font-family: &amp;quot;Mona Sans VF&amp;quot;, -apple-system, BlinkMacSystemFont, &amp;quot;Segoe UI&amp;quot;, &amp;quot;Noto Sans Backtick Fix&amp;quot;, &amp;quot;Noto Sans&amp;quot;, Helvetica, Arial, sans-serif, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;; font-size: 16px; text-align: start; white-space: normal; background-color: rgb(13, 17, 23);&quot;&gt;Template Model Service&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="60" x="580" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-30" edge="1" parent="1" source="862ci2YIQy45EAfYFc5y-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=1;" target="862ci2YIQy45EAfYFc5y-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-3" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;fontColor=#4277BB;labelBackgroundColor=default;fontSize=12;spacingTop=3;image=img/lib/ibm/miscellaneous/microservices_application.svg;" value="&lt;span style=&quot;color: rgb(240, 246, 252); font-family: &amp;quot;Mona Sans VF&amp;quot;, -apple-system, BlinkMacSystemFont, &amp;quot;Segoe UI&amp;quot;, &amp;quot;Noto Sans Backtick Fix&amp;quot;, &amp;quot;Noto Sans&amp;quot;, Helvetica, Arial, sans-serif, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;; font-size: 16px; text-align: start; white-space: normal; background-color: rgb(13, 17, 23);&quot;&gt;Template Engine Service&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="60" x="580" y="444" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-4" parent="1" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;fontColor=#4277BB;labelBackgroundColor=default;fontSize=12;spacingTop=3;image=img/lib/ibm/miscellaneous/microservices_application.svg;" value="&lt;span style=&quot;color: rgb(240, 246, 252); font-family: &amp;quot;Mona Sans VF&amp;quot;, -apple-system, BlinkMacSystemFont, &amp;quot;Segoe UI&amp;quot;, &amp;quot;Noto Sans Backtick Fix&amp;quot;, &amp;quot;Noto Sans&amp;quot;, Helvetica, Arial, sans-serif, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;; font-size: 16px; text-align: start; white-space: normal; background-color: rgb(13, 17, 23);&quot;&gt;Document Converter Service&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="60" x="580" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-6" edge="1" parent="1" source="862ci2YIQy45EAfYFc5y-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="862ci2YIQy45EAfYFc5y-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="94" y="400" />
+              <mxPoint x="270" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-8" connectable="0" parent="862ci2YIQy45EAfYFc5y-6" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="HTTP sync. request" vertex="1">
+          <mxGeometry relative="1" x="-0.0038" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-21" edge="1" parent="1" source="862ci2YIQy45EAfYFc5y-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;dashed=1;" target="862ci2YIQy45EAfYFc5y-1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="94" y="600" />
+              <mxPoint x="270" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-22" connectable="0" parent="862ci2YIQy45EAfYFc5y-21" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="HTTP sync. request" vertex="1">
+          <mxGeometry relative="1" x="-0.0247" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-5" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/intune/Client_Apps.svg;" value="Client Applications&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="68" width="68" x="60" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-26" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=1;" target="862ci2YIQy45EAfYFc5y-2" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="270" />
+            </Array>
+            <mxPoint x="280" y="440" as="sourcePoint" />
+            <mxPoint x="330" y="390" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-27" parent="1" style="shape=message;html=1;html=1;outlineConnect=0;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="20" width="40" x="320" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-29" parent="1" style="shape=message;html=1;html=1;outlineConnect=0;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="20" width="40" x="620" y="404" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-31" parent="1" style="shape=message;html=1;html=1;outlineConnect=0;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="20" width="40" x="620" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-32" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1" value="Synchronous Communication" vertex="1">
+          <mxGeometry height="30" width="200" x="80" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-33" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1" value="Asynchronous Communication" vertex="1">
+          <mxGeometry height="30" width="200" x="80" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-34" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="120" y="350" as="sourcePoint" />
+            <mxPoint x="240" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-35" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;dashed=1;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="120" y="650" as="sourcePoint" />
+            <mxPoint x="240" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-39" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1" value="Document Processing Pipeline" vertex="1">
+          <mxGeometry height="30" width="200" x="520" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-41" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/intune/Client_Apps.svg;" value="Output Consumers" vertex="1">
+          <mxGeometry height="68" width="68" x="800" y="636" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-42" edge="1" parent="1" source="862ci2YIQy45EAfYFc5y-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.015;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;" target="862ci2YIQy45EAfYFc5y-41">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="862ci2YIQy45EAfYFc5y-43" parent="1" style="shape=message;html=1;html=1;outlineConnect=0;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="20" width="40" x="720" y="640" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
