@@ -53,6 +53,7 @@ The solution is intended to serve both as a reference implementation for Clean A
 
 ## Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+- [Aspire](https://aspire.dev)
 - [Visual Studio 2026](https://visualstudio.microsoft.com) or [Rider](https://www.jetbrains.com/rider) or [Visual Studio Code](https://code.visualstudio.com)
 - [Docker Desktop](https://www.docker.com) (optional)
 
