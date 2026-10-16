@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Tooling/">
+    <Project Path="TemplateGenerator/TemplateGenerator.Client/TemplateGenerator.Client.csproj" Id="96747744-8f47-4534-8cd9-5cdaaf88b7db" />
+    <Project Path="TemplateGenerator/TemplateGenerator/TemplateGenerator.csproj" Id="d6d20526-f2cd-4e01-bb51-c5ecce4f6b82" />
+  </Folder>
+</Solution>

@@ -7,6 +7,8 @@ Built on .NET 10, the solution demonstrates a well-structured, scalable, and mai
 The solution is intended to serve both as a reference implementation for Clean Architecture best practices and as a ready-to-use foundation for enterprise-level applications that require long-term maintainability, extensibility, and high development efficiency.
 
 ## Key Features
+- **Template Generation:** Generate HTML templates from Microsoft Word documents
+- **Templating Engine:** Razor syntax
 - **PDF Generator:** PDF generation using HTML and CSS
 - **Templating Engine:** Razor syntax
 - **Template Combination:** Two or more templates combination
@@ -14,16 +16,17 @@ The solution is intended to serve both as a reference implementation for Clean A
 - **Template Version:** Template versioning and active duration
 
 ## Key Designs
-- **Microservices Architecture:** Small, loosely coupled, and independently deployable services
-- **Clean Architecture Using Repository Pattern:** Layer separation with dependency inversion in each service
-- **Modern UI:** Beautiful, responsive interface built with ASP.NET Core Blazor and Fluent UI Blazor
+- **Microservices Architecture:** small, loosely coupled, and independently deployable services
+- **Clean Architecture Using Repository Pattern:** layer separation with dependency inversion in each service
+- **Modern UI:** beautiful, responsive interface built with ASP.NET Core Blazor and Fluent UI Blazor
 - **Real-time Communication:** SignalR integration for live updates
-- **Enterprise Security:** Multi-factor authentication, role-based access control
-- **Advanced Data Grid:** Sorting, filtering, pagination, and export capabilities
-- **Docker Ready:** Complete containerization support
+- **Enterprise Security:** multi-factor authentication, role-based access control
+- **Advanced Data Grid:** sorting, filtering, pagination, and export capabilities
+- **Docker Ready:** complete containerization support
 
 ## Clean Architecture Layer Responsibilities
-- **Application Core:** Core business entities and rules (no dependencies), business logic, interfaces, and DTOs
+- **Domain:** core entities, domain events, and business rules (no dependencies)
+- **Application:** business logic, interfaces, use cases, DTOs, validation, pipeline behaviors, and application abstractions
 - **Infrastructure:** External concerns (database, email, file system)
 - **HTTP API & Web UI:** HTTP APIs, Blazor components and user interface
 
