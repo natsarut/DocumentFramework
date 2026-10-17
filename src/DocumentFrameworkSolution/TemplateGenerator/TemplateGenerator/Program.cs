@@ -1,6 +1,11 @@
 using Microsoft.FluentUI.AspNetCore.Components;
+using TemplateGenerator.Application.Contracts;
+using TemplateGenerator.Application.Services;
 using TemplateGenerator.Client.Pages;
 using TemplateGenerator.Components;
+using TemplateGenerator.Infrastructure.Pdf;
+using TemplateGenerator.Infrastructure.Rendering;
+using TemplateGenerator.Infrastructure.Word;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +14,11 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 builder.Services.AddFluentUIComponents();
+
+builder.Services.AddScoped<IWordDocumentParser, WordDocumentParser>();
+builder.Services.AddScoped<IHtmlDocumentRenderer, HtmlDocumentRenderer>();
+builder.Services.AddScoped<IPdfExportService, PdfExportService>();
+builder.Services.AddScoped<IDocumentConversionService, DocumentConversionService>();
 
 var app = builder.Build();
 

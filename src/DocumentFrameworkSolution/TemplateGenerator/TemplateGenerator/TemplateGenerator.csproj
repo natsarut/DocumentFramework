@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TemplateGenerator.Client\TemplateGenerator.Client.csproj" />
+    <ProjectReference Include="..\TemplateGenerator.Application\TemplateGenerator.Application.csproj" />
+    <ProjectReference Include="..\TemplateGenerator.Infrastructure\TemplateGenerator.Infrastructure.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.13" />
   </ItemGroup>
 
