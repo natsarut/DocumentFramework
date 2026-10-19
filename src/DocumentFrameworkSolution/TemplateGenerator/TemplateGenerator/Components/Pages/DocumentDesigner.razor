@@ -1,0 +1,105 @@
+@page "/document-designer"
+@rendermode InteractiveAuto
+@using TemplateGenerator.Application.Contracts
+@using TemplateGenerator.Application.Services
+@using TemplateGenerator.Domain
+@inject IDocumentConversionService DocumentConversionService
+@inject IDocumentUploadValidator UploadValidator
+
+<PageTitle>Document Designer</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical" Gap="" Style="padding: 1rem;">
+    <FluentText Typography="Typography.H3">Word → HTML → PDF</FluentText>
+
+    <FluentGrid Justify="JustifyContent.FlexStart" Style="width: 100%;">
+        <FluentGridItem xs="12" md="6">
+            <FluentCard Style="padding: 1rem; height: 100%;">
+                <FluentLabel>Upload Microsoft Word document</FluentLabel>
+                <InputFile OnChange="HandleFileSelected" />
+
+                @if (!string.IsNullOrWhiteSpace(_statusMessage))
+                {
+                    <FluentDivider />
+                    <FluentText>@_statusMessage</FluentText>
+                }
+            </FluentCard>
+        </FluentGridItem>
+
+        <FluentGridItem xs="12" md="6">
+            <FluentCard Style="padding: 1rem; height: 100%;">
+                <FluentLabel>Print settings</FluentLabel>
+                <FluentSelect TValue="PaperSize"
+                              TOption="PaperSize"
+                              Items="Enum.GetValues<PaperSize>()"
+                              OptionText="@(v => v.ToString())"
+                              @bind-Value="_pageSettings.Size" />
+
+                <FluentSelect TValue="PageOrientation"
+                              TOption="PageOrientation"
+                              Items="Enum.GetValues<PageOrientation>()"
+                              OptionText="@(v => v.ToString())"
+                              @bind-Value="_pageSettings.Orientation" />
+            </FluentCard>
+        </FluentGridItem>
+    </FluentGrid>
+
+    @if (!string.IsNullOrWhiteSpace(_htmlPreview))
+    {
+        <FluentDivider />
+        <FluentStack Orientation="Orientation.Horizontal" Gap="" Style="justify-content: space-between; align-items: center;">
+            <FluentLabel>HTML preview</FluentLabel>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="ExportPdfAsync">Export PDF</FluentButton>
+        </FluentStack>
+
+        <iframe srcdoc="@_htmlPreview" style="width: 100%; min-height: 700px; border: 1px solid #d1d7e0; border-radius: 8px;" />
+    }
+</FluentStack>
+
+@code {
+    private string? _statusMessage;
+    private string? _htmlPreview;
+    private readonly PageSettings _pageSettings = new();
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null)
+            return;
+
+        try
+        {
+            UploadValidator.Validate(file.OpenReadStream(), file.Name);
+
+            await using var stream = file.OpenReadStream(20L * 1024 * 1024);
+            var document = await DocumentConversionService.ParseWordAsync(stream);
+            _htmlPreview = DocumentConversionService.RenderHtml(document);
+            _statusMessage = $"Loaded: {file.Name} ({document.Sections.Sum(s => s.Blocks.Count)} blocks)";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = ex.Message;
+            _htmlPreview = null;
+        }
+    }
+
+    private async Task ExportPdfAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_htmlPreview))
+            return;
+
+        try
+        {
+            var pdfBytes = await DocumentConversionService.ExportPdfAsync(_htmlPreview, _pageSettings);
+            var fileName = $"document-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
+
+            await JS.InvokeVoidAsync("downloadFile", fileName, "application/pdf", Convert.ToBase64String(pdfBytes));
+            _statusMessage = $"PDF exported: {fileName}";
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = ex.Message;
+        }
+    }
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+}

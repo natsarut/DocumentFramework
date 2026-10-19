@@ -27,11 +27,6 @@ The main application layers are:
 - Update documentation when setup steps, commands, or workflows change.
 - If a task benefits from explicit design or planning, add artifacts under `docs/superpowers/` rather than inventing a separate process.
 
-## Common Commands
-Build the solution: `dotnet build DocumentFrameworkSolution.slnx`
-
-Run tests: `dotnet test DocumentFrameworkSolution.slnx`
-
 ## Where To Look First
 - `README.md` for project overview, setup, and supported workflows
 - `docs/` for detailed design, architecture, and development guidelines
