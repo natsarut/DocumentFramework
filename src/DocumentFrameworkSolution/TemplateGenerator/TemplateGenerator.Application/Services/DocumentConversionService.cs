@@ -1,12 +1,13 @@
 using TemplateGenerator.Application.Contracts;
+using TemplateGenerator.Application.Models;
 using TemplateGenerator.Domain;
 
 namespace TemplateGenerator.Application.Services;
 
 public interface IDocumentConversionService
 {
-    Task<DocumentModel> ParseWordAsync(Stream stream, CancellationToken cancellationToken = default);
-    string RenderHtml(DocumentModel document);
+    Task<WordConversionResult> ParseWordAsync(Stream stream, CancellationToken cancellationToken = default);
+    string RenderHtml(WordConversionResult result);
     Task<byte[]> ExportPdfAsync(string html, PageSettings pageSettings, CancellationToken cancellationToken = default);
 }
 
@@ -26,11 +27,11 @@ public sealed class DocumentConversionService : IDocumentConversionService
         _pdfExportService = pdfExportService;
     }
 
-    public Task<DocumentModel> ParseWordAsync(Stream stream, CancellationToken cancellationToken = default)
-        => _wordDocumentParser.ParseAsync(stream, cancellationToken);
+    public async Task<WordConversionResult> ParseWordAsync(Stream stream, CancellationToken cancellationToken = default)
+        => await _wordDocumentParser.ParseAsync(stream, cancellationToken);
 
-    public string RenderHtml(DocumentModel document)
-        => _htmlDocumentRenderer.Render(document);
+    public string RenderHtml(WordConversionResult result)
+        => _htmlDocumentRenderer.Render(result);
 
     public Task<byte[]> ExportPdfAsync(string html, PageSettings pageSettings, CancellationToken cancellationToken = default)
         => _pdfExportService.ExportAsync(html, pageSettings, cancellationToken);

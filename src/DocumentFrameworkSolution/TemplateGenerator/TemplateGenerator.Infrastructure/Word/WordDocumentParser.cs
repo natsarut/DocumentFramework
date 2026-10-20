@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using TemplateGenerator.Application.Contracts;
+using TemplateGenerator.Application.Models;
 using TemplateGenerator.Domain;
 
 namespace TemplateGenerator.Infrastructure.Word;
@@ -122,5 +123,10 @@ public sealed class WordDocumentParser : IWordDocumentParser
 
         html.Append("</p>");
         return html.ToString();
+    }
+
+    Task<WordConversionResult> IWordDocumentParser.ParseAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
     }
 }

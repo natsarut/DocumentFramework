@@ -133,7 +133,6 @@
 
             await using var stream = file.OpenReadStream(20L * 1024 * 1024);
             var result = await DocumentConversionService.ParseWordAsync(stream);
-
             _htmlPreview = DocumentConversionService.RenderHtml(result);
             _pdfPreviewDataUrl = null;
             _activePreviewTab = "browser";

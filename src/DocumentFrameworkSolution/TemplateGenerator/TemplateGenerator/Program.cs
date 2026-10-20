@@ -16,7 +16,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddFluentUIComponents();
 
 builder.Services.AddScoped<IDocumentUploadValidator, DocumentUploadValidator>();
-builder.Services.AddScoped<IWordDocumentParser, WordDocumentParser>();
+builder.Services.AddScoped<IWordDocumentParser, OpenXmlWordParser>();
 builder.Services.AddScoped<IHtmlDocumentRenderer, HtmlDocumentRenderer>();
 builder.Services.AddScoped<IPdfExportService, PdfExportService>();
 builder.Services.AddScoped<IDocumentConversionService, DocumentConversionService>();
