@@ -1,9 +1,17 @@
 <Solution>
-  <Folder Name="/TemplateGenerator/">
-    <Project Path="TemplateGenerator/TemplateGenerator.Application/TemplateGenerator.Application.csproj" />
-    <Project Path="TemplateGenerator/TemplateGenerator.Client/TemplateGenerator.Client.csproj" Id="96747744-8f47-4534-8cd9-5cdaaf88b7db" />
+  <Folder Name="/0-Cross Cuttings/" />
+  <Folder Name="/1-Domains/">
     <Project Path="TemplateGenerator/TemplateGenerator.Domain/TemplateGenerator.Domain.csproj" />
+  </Folder>
+  <Folder Name="/2-Applications/">
+    <Project Path="TemplateGenerator/TemplateGenerator.Application/TemplateGenerator.Application.csproj" />
+  </Folder>
+  <Folder Name="/3-Infrastructures/">
     <Project Path="TemplateGenerator/TemplateGenerator.Infrastructure/TemplateGenerator.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/4-Web APIs/" />
+  <Folder Name="/5-UIs/">
+    <Project Path="TemplateGenerator/TemplateGenerator.Client/TemplateGenerator.Client.csproj" Id="96747744-8f47-4534-8cd9-5cdaaf88b7db" />
     <Project Path="TemplateGenerator/TemplateGenerator/TemplateGenerator.csproj" Id="d6d20526-f2cd-4e01-bb51-c5ecce4f6b82" />
   </Folder>
 </Solution>
