@@ -73,6 +73,16 @@
                         PDF Preview
                     </button>
 
+                    @if (!string.IsNullOrWhiteSpace(_browserPreviewUrl))
+                    {
+                        <a class="tab-button preview-window-button"
+                           href="@_browserPreviewUrl"
+                           target="_blank"
+                           rel="noopener noreferrer">
+                            Open Preview in New Window
+                        </a>
+                    }
+
                     <FluentButton Appearance="ButtonAppearance.Primary"
                                   OnClick="ExportPdfAsync">
                         Export PDF
@@ -112,6 +122,7 @@
 @code {
     private string? _statusMessage;
     private string? _htmlPreview;
+    private string? _browserPreviewUrl;
     private string? _pdfPreviewDataUrl;
     private string _activePreviewTab = "browser";
     private readonly PageSettings _pageSettings = new();
@@ -133,7 +144,12 @@
 
             await using var stream = file.OpenReadStream(20L * 1024 * 1024);
             var result = await DocumentConversionService.ParseWordAsync(stream);
-            _htmlPreview = DocumentConversionService.RenderHtml(result);
+            var htmlPreview = DocumentConversionService.RenderHtml(result);
+            var previewUrl = await CreateBrowserPreviewUrlAsync(htmlPreview);
+            await RevokeBrowserPreviewUrlAsync();
+
+            _htmlPreview = htmlPreview;
+            _browserPreviewUrl = previewUrl;
             _pdfPreviewDataUrl = null;
             _activePreviewTab = "browser";
             _statusMessage = $"Loaded: {file.Name}";
@@ -144,7 +160,25 @@
             _htmlPreview = null;
             _pdfPreviewDataUrl = null;
             _activePreviewTab = "browser";
+            await RevokeBrowserPreviewUrlAsync();
         }
+    }
+
+    private async Task<string> CreateBrowserPreviewUrlAsync(string html)
+    {
+        using var htmlStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(html));
+        using var streamReference = new DotNetStreamReference(htmlStream);
+        return await JS.InvokeAsync<string>("createHtmlPreviewUrl", streamReference);
+    }
+
+    private async Task RevokeBrowserPreviewUrlAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_browserPreviewUrl))
+            return;
+
+        var previewUrl = _browserPreviewUrl;
+        _browserPreviewUrl = null;
+        await JS.InvokeVoidAsync("revokeHtmlPreviewUrl", previewUrl);
     }
 
     private async Task ExportPdfAsync()

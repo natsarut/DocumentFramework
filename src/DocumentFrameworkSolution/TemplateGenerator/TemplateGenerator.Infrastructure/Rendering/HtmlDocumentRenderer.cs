@@ -9,16 +9,13 @@ public sealed class HtmlDocumentRenderer : IHtmlDocumentRenderer
 {
     public string Render(WordConversionResult result)
     {
-        if (result is null)
-            throw new ArgumentNullException(nameof(result));
-
+        ArgumentNullException.ThrowIfNull(result);
         return Render(result.Html, result.Css);
     }
 
     public string Render(DocumentModel document)
     {
-        if (document is null)
-            throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
 
         var htmlBuilder = new StringBuilder();
 
@@ -46,12 +43,12 @@ public sealed class HtmlDocumentRenderer : IHtmlDocumentRenderer
 
     public string Render(string html, string css)
     {
-        if (string.IsNullOrWhiteSpace(html))
-            return BuildDocumentHtml(string.Empty, css);
+        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(css);
 
         var effectiveCss = string.IsNullOrWhiteSpace(css)
             ? GetPrintCss()
-            : css;
+            : GetPrintCss() + Environment.NewLine + css;
 
         return BuildDocumentHtml(html, effectiveCss);
     }
@@ -74,14 +71,16 @@ public sealed class HtmlDocumentRenderer : IHtmlDocumentRenderer
         sb.AppendLine("<html lang=\"en\">");
         sb.AppendLine("<head>");
         sb.AppendLine("  <meta charset=\"utf-8\" />");
+        sb.AppendLine("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />");
+        sb.AppendLine("  <title>Document</title>");
         sb.AppendLine("  <style>");
         sb.AppendLine(css);
         sb.AppendLine("  </style>");
         sb.AppendLine("</head>");
         sb.AppendLine("<body>");
-        sb.AppendLine("  <div class=\"document-shell\">");
+        sb.AppendLine("  <main class=\"document-shell\">");
         sb.AppendLine(bodyHtml);
-        sb.AppendLine("  </div>");
+        sb.AppendLine("  </main>");
         sb.AppendLine("</body>");
         sb.AppendLine("</html>");
 
@@ -109,18 +108,18 @@ html, body {
 }
 
 body {
-  display: flex;
-  justify-content: center;
+  display: block;
 }
 
 .document-shell {
   width: 100%;
   max-width: 210mm;
+  margin: 0 auto;
   padding: 0;
 }
 
-.doc-section {
-  page-break-inside: avoid;
+  .doc-section {
+  page-break-inside: auto;
 }
 
 .doc-paragraph,
@@ -128,8 +127,29 @@ body {
 .doc-list,
 .doc-table,
 .doc-image,
-.doc-link {
+.doc-link,
+.doc-textbox,
+.doc-shape {
   break-inside: avoid;
+}
+
+.doc-header,
+.doc-footer {
+  display: block;
+}
+
+.doc-image {
+  max-width: 100%;
+  height: auto;
+}
+
+.doc-textbox {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.doc-tab {
+  white-space: pre;
 }
 
 .doc-heading {
@@ -166,7 +186,8 @@ h3.doc-heading { font-size: 1.35rem; }
   text-decoration: underline;
 }
 
-.page-break {
+  .page-break {
+  display: block;
   break-after: page;
   page-break-after: always;
   height: 0;

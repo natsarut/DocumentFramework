@@ -568,3 +568,8 @@ transform:rotate(30deg);
 - FlowChart Shapes
 
 เหมาะสำหรับใช้เป็น Reference ในการพัฒนา DOCX → HTML Renderer, DOCX Viewer, PDF Generator และ Document Conversion Platform
+
+---
+
+# Reference
+- [Word processing](https://learn.microsoft.com/en-us/office/open-xml/word/overview)

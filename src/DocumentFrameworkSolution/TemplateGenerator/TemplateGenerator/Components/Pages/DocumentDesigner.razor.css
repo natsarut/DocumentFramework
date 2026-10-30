@@ -60,6 +60,13 @@
         box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
     }
 
+.preview-window-button
+{
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
 .preview-surface
 {
     border: 1px solid #dfe3e8;
