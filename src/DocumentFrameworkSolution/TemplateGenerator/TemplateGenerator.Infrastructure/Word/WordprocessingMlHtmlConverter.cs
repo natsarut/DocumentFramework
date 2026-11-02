@@ -13,6 +13,7 @@ internal sealed class WordprocessingMlHtmlConverter
     private const long EmusPerPixel = 9525;
     private readonly MainDocumentPart _mainPart;
     private OpenXmlPart _activePart;
+    private string? _activeParagraphStyleId;
     private readonly List<string> _messages = [];
 
     private WordprocessingMlHtmlConverter(MainDocumentPart mainPart)
@@ -28,7 +29,10 @@ internal sealed class WordprocessingMlHtmlConverter
         var html = new StringBuilder();
         var css = new StringBuilder(DefaultDocumentCss);
 
-        html.AppendLine("<div class=\"doc-root\">");
+        html.Append("<div class=\"doc-root\"");
+        if (converter.ResolveDocumentDefaultFontFamily() is { } defaultFontFamily)
+            html.Append(" style=\"font-family:").Append(Attr(defaultFontFamily)).Append('"');
+        html.AppendLine(">");
         converter.AppendHeadersAndFooters(html, body, "headerReference", "header", cancellationToken);
         converter.AppendDocumentSections(html, css, body, cancellationToken);
         converter.AppendNotes(html, cancellationToken);
@@ -130,7 +134,7 @@ internal sealed class WordprocessingMlHtmlConverter
         if (NameIs(element, "tbl"))
             return ConvertTable(element, cancellationToken);
         if (NameIs(element, "lastRenderedPageBreak"))
-            return "<div class=\"page-break\"></div>";
+            return string.Empty;
         if (NameIs(element, "sdt"))
         {
             var content = FindChild(element, "sdtContent");
@@ -172,16 +176,25 @@ internal sealed class WordprocessingMlHtmlConverter
     {
         var output = new StringBuilder();
         var field = new FieldState();
-        foreach (var child in paragraph.ChildElements)
+        var previousParagraphStyleId = _activeParagraphStyleId;
+        _activeParagraphStyleId = GetParagraphStyleId(paragraph);
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (NameIs(child, "pPr"))
-                continue;
-            output.Append(ConvertInline(child, field, cancellationToken));
+            foreach (var child in paragraph.ChildElements)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (NameIs(child, "pPr"))
+                    continue;
+                output.Append(ConvertInline(child, field, cancellationToken));
+            }
+            if (field.Active)
+                output.Append(RenderField(field.Instruction.ToString(), field.Result.ToString()));
+            return output.ToString();
         }
-        if (field.Active)
-            output.Append(RenderField(field.Instruction.ToString(), field.Result.ToString()));
-        return output.ToString();
+        finally
+        {
+            _activeParagraphStyleId = previousParagraphStyleId;
+        }
     }
 
     private string ConvertInline(OpenXmlElement element, FieldState field, CancellationToken cancellationToken)
@@ -214,8 +227,9 @@ internal sealed class WordprocessingMlHtmlConverter
         }
         if (localName == "t" || localName == "delText" || localName == "instrText")
         {
-            var text = System.Net.WebUtility.HtmlEncode(element.InnerText);
-            if (!field.Active && GetAttribute(element, "space", "http://www.w3.org/XML/1998/namespace") == "preserve")
+            var rawText = element.InnerText;
+            var text = System.Net.WebUtility.HtmlEncode(rawText);
+            if (!field.Active && (GetAttribute(element, "space", "http://www.w3.org/XML/1998/namespace") == "preserve" || rawText.Contains("  ", StringComparison.Ordinal)))
                 text = "<span class=\"doc-preserve\">" + text + "</span>";
             if (field.Active)
             {
@@ -252,7 +266,7 @@ internal sealed class WordprocessingMlHtmlConverter
             return type == "page" ? "<span class=\"page-break\"></span>" : "<br />";
         }
         if (localName == "lastRenderedPageBreak")
-            return "<span class=\"page-break\"></span>";
+            return string.Empty;
         if (localName is "cr")
             return "<br />";
         if (localName == "tab")
@@ -313,44 +327,227 @@ internal sealed class WordprocessingMlHtmlConverter
         var content = output.ToString();
         if (content.Length == 0)
             return content;
-        return ApplyRunFormatting(content, FindChild(run, "rPr"));
+        return ApplyRunFormatting(content, FindChild(run, "rPr"), run.InnerText);
     }
 
-    private static string ApplyRunFormatting(string content, OpenXmlElement? properties)
+    private string ApplyRunFormatting(string content, OpenXmlElement? properties, string text)
     {
-        if (properties is null)
-            return content;
+        var sources = GetRunFormattingSources(properties);
         var style = new Dictionary<string, string>(StringComparer.Ordinal);
-        var fonts = FindChild(properties, "rFonts");
-        var font = GetAttribute(fonts, "ascii") ?? GetAttribute(fonts, "hAnsi") ?? GetAttribute(fonts, "eastAsia");
-        if (!string.IsNullOrWhiteSpace(font))
-        {
-            var safeFont = Regex.Replace(font, "[^A-Za-z0-9 ,_-]", string.Empty, RegexOptions.CultureInvariant);
-            if (safeFont.Length > 0) style["font-family"] = "'" + safeFont + "'";
-        }
-        var size = GetAttribute(FindChild(properties, "sz"), "val");
+        if (ResolveRunFontFamily(sources, text) is { } fontFamily)
+            style["font-family"] = fontFamily;
+        var size = GetAttribute(FindRunProperty(sources, "sz"), "val");
         if (double.TryParse(size, NumberStyles.Number, CultureInfo.InvariantCulture, out var halfPoints))
             style["font-size"] = (halfPoints / 2).ToString("0.##", CultureInfo.InvariantCulture) + "pt";
-        var color = GetAttribute(FindChild(properties, "color"), "val");
+        var color = GetAttribute(FindRunProperty(sources, "color"), "val");
         if (IsHexColor(color)) style["color"] = "#" + color;
-        var highlight = GetAttribute(FindChild(properties, "highlight"), "val");
+        var highlight = GetAttribute(FindRunProperty(sources, "highlight"), "val");
         if (TryGetHighlightColor(highlight, out var highlightColor)) style["background-color"] = highlightColor;
-        var spacing = GetAttribute(FindChild(properties, "spacing"), "val");
+        var spacing = GetAttribute(FindRunProperty(sources, "spacing"), "val");
         if (int.TryParse(spacing, NumberStyles.Integer, CultureInfo.InvariantCulture, out var spacingValue))
             style["letter-spacing"] = (spacingValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt";
 
-        if (IsOn(FindChild(properties, "b"))) content = $"<strong>{content}</strong>";
-        if (IsOn(FindChild(properties, "i"))) content = $"<em>{content}</em>";
-        if (IsOn(FindChild(properties, "u"))) content = $"<span style=\"text-decoration:underline\">{content}</span>";
-        if (IsOn(FindChild(properties, "strike")) || IsOn(FindChild(properties, "dstrike")))
+        if (IsOn(FindRunProperty(sources, "b"))) content = $"<strong>{content}</strong>";
+        if (IsOn(FindRunProperty(sources, "i"))) content = $"<em>{content}</em>";
+        if (IsOn(FindRunProperty(sources, "u"))) content = $"<span style=\"text-decoration:underline\">{content}</span>";
+        if (IsOn(FindRunProperty(sources, "strike")) || IsOn(FindRunProperty(sources, "dstrike")))
             content = $"<del>{content}</del>";
-        if (IsOn(FindChild(properties, "caps"))) style["text-transform"] = "uppercase";
-        if (IsOn(FindChild(properties, "smallCaps"))) style["font-variant"] = "small-caps";
-        if (IsOn(FindChild(properties, "vanish"))) style["display"] = "none";
-        var vertical = GetAttribute(FindChild(properties, "vertAlign"), "val");
+        if (IsOn(FindRunProperty(sources, "caps"))) style["text-transform"] = "uppercase";
+        if (IsOn(FindRunProperty(sources, "smallCaps"))) style["font-variant"] = "small-caps";
+        if (IsOn(FindRunProperty(sources, "vanish"))) style["display"] = "none";
+        var vertical = GetAttribute(FindRunProperty(sources, "vertAlign"), "val");
         if (vertical == "superscript") content = $"<sup>{content}</sup>";
         if (vertical == "subscript") content = $"<sub>{content}</sub>";
         return style.Count == 0 ? content : $"<span{StyleAttribute(style)}>{content}</span>";
+    }
+
+    private List<OpenXmlElement?> GetRunFormattingSources(OpenXmlElement? runProperties)
+    {
+        var sources = new List<OpenXmlElement?> { runProperties };
+        var characterStyleId = GetAttribute(FindChild(runProperties, "rStyle"), "val");
+        sources.AddRange(GetStyleProperties(characterStyleId, "rPr"));
+        sources.AddRange(GetStyleProperties(_activeParagraphStyleId, "rPr"));
+        sources.Add(GetDocumentDefaultRunProperties());
+        return sources;
+    }
+
+    private static OpenXmlElement? FindRunProperty(IEnumerable<OpenXmlElement?> sources, string propertyName)
+        => sources.Select(source => FindChild(source, propertyName)).FirstOrDefault(property => property is not null);
+
+    private string? ResolveRunFontFamily(List<OpenXmlElement?> sources, string text)
+    {
+        var families = new List<string>();
+        foreach (var slot in GetFontSlots(text))
+        {
+            foreach (var source in sources)
+            {
+                var fonts = FindChild(source, "rFonts");
+                if (fonts is null)
+                    continue;
+
+                var family = ResolveDeclaredFont(fonts, slot, text);
+                if (!string.IsNullOrWhiteSpace(family) && !families.Contains(family, StringComparer.OrdinalIgnoreCase))
+                {
+                    families.Add(family);
+                    break;
+                }
+            }
+        }
+
+        return families.Count == 0 ? null : string.Join(", ", families.Select(QuoteCssFontFamily));
+    }
+
+    private string? ResolveDocumentDefaultFontFamily()
+    {
+        var defaults = GetDocumentDefaultRunProperties();
+        if (defaults is null)
+            return null;
+        var fonts = FindChild(defaults, "rFonts");
+        var family = fonts is null ? null : ResolveDeclaredFont(fonts, "ascii", string.Empty);
+        return string.IsNullOrWhiteSpace(family) ? null : QuoteCssFontFamily(family);
+    }
+
+    private string? GetParagraphStyleId(OpenXmlElement paragraph)
+    {
+        var styleId = GetAttribute(FindChild(FindChild(paragraph, "pPr"), "pStyle"), "val");
+        if (!string.IsNullOrWhiteSpace(styleId))
+            return styleId;
+
+        var defaultStyle = _mainPart.StyleDefinitionsPart?.Styles?.ChildElements.FirstOrDefault(element =>
+            NameIs(element, "style") && GetAttribute(element, "type") == "paragraph" &&
+            GetAttribute(element, "default") is "1" or "true" or "on");
+        return GetAttribute(defaultStyle, "styleId");
+    }
+
+    private IEnumerable<OpenXmlElement> GetStyleProperties(string? styleId, string propertyName)
+    {
+        var styles = _mainPart.StyleDefinitionsPart?.Styles;
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId))
+        {
+            var style = styles?.ChildElements.FirstOrDefault(element =>
+                NameIs(element, "style") && GetAttribute(element, "styleId") == styleId);
+            if (style is null)
+                yield break;
+
+            if (FindChild(style, propertyName) is { } properties)
+                yield return properties;
+            styleId = GetAttribute(FindChild(style, "basedOn"), "val");
+        }
+    }
+
+    private OpenXmlElement? GetDocumentDefaultRunProperties()
+    {
+        var defaults = FindChild(_mainPart.StyleDefinitionsPart?.Styles, "docDefaults");
+        return FindChild(FindChild(defaults, "rPrDefault"), "rPr");
+    }
+
+    private string? ResolveDeclaredFont(OpenXmlElement fonts, string slot, string text)
+    {
+        var (fontAttributes, themeAttributes) = slot switch
+        {
+            "eastAsia" => (new[] { "eastAsia" }, new[] { "eastAsiaTheme" }),
+            "cs" => (new[] { "cs" }, new[] { "cstheme" }),
+            _ => (new[] { "ascii", "hAnsi" }, new[] { "asciiTheme", "hAnsiTheme" })
+        };
+
+        foreach (var attribute in fontAttributes)
+        {
+            var font = GetAttribute(fonts, attribute);
+            if (!string.IsNullOrWhiteSpace(font))
+                return font;
+        }
+        foreach (var attribute in themeAttributes)
+        {
+            var themeName = GetAttribute(fonts, attribute);
+            if (!string.IsNullOrWhiteSpace(themeName) && ResolveThemeFont(themeName, slot, text) is { } themeFont)
+                return themeFont;
+        }
+        return null;
+    }
+
+    private string? ResolveThemeFont(string themeName, string slot, string text)
+    {
+        var themeFont = themeName.StartsWith("major", StringComparison.OrdinalIgnoreCase)
+            ? "majorFont"
+            : themeName.StartsWith("minor", StringComparison.OrdinalIgnoreCase)
+                ? "minorFont"
+                : null;
+        if (themeFont is null)
+            return null;
+
+        var themeElements = FindChild(_mainPart.ThemePart?.RootElement, "themeElements");
+        var fontScheme = FindChild(themeElements, "fontScheme");
+        var fontSet = FindChild(fontScheme, themeFont);
+        var fontElement = FindChild(fontSet, slot == "eastAsia" ? "ea" : slot == "cs" ? "cs" : "latin");
+        var typeface = GetAttribute(fontElement, "typeface");
+        if (!string.IsNullOrWhiteSpace(typeface))
+            return typeface;
+
+        var script = GetThemeScript(text, slot);
+        var supplementalFont = script is null ? null : fontSet?.ChildElements.FirstOrDefault(element =>
+            NameIs(element, "font") && GetAttribute(element, "script") == script);
+        typeface = GetAttribute(supplementalFont, "typeface");
+        return string.IsNullOrWhiteSpace(typeface) ? null : typeface;
+    }
+
+    private static string? GetThemeScript(string text, string slot)
+    {
+        foreach (var rune in text.EnumerateRunes())
+        {
+            var value = rune.Value;
+            if (slot == "eastAsia")
+            {
+                if (value is >= 0x3040 and <= 0x30FF or >= 0x31F0 and <= 0x31FF)
+                    return "Jpan";
+                if (value is >= 0xAC00 and <= 0xD7AF)
+                    return "Hang";
+                if (value is >= 0x2E80 and <= 0xA4CF or >= 0xF900 and <= 0xFAFF or >= 0x20000 and <= 0x323AF)
+                    return "Hans";
+            }
+            else if (slot == "cs")
+            {
+                if (value is >= 0x0590 and <= 0x05FF)
+                    return "Hebr";
+                if (value is >= 0x0600 and <= 0x08FF)
+                    return "Arab";
+                if (value is >= 0x0E00 and <= 0x0E7F)
+                    return "Thai";
+            }
+        }
+        return null;
+    }
+
+    private static IEnumerable<string> GetFontSlots(string text)
+    {
+        var slots = new List<string>();
+        foreach (var rune in text.EnumerateRunes())
+        {
+            var value = rune.Value;
+            var slot = IsEastAsianCharacter(value) ? "eastAsia" : IsComplexScriptCharacter(value) ? "cs" : "ascii";
+            if (!slots.Contains(slot, StringComparer.Ordinal))
+                slots.Add(slot);
+        }
+        if (slots.Count == 0)
+            slots.Add("ascii");
+        return slots;
+    }
+
+    private static bool IsEastAsianCharacter(int value)
+        => value is >= 0x2E80 and <= 0xA4CF or >= 0xAC00 and <= 0xD7AF or >= 0xF900 and <= 0xFAFF
+            or >= 0xFE30 and <= 0xFE4F or >= 0xFF00 and <= 0xFFEF or >= 0x20000 and <= 0x323AF;
+
+    private static bool IsComplexScriptCharacter(int value)
+        => value is >= 0x0590 and <= 0x08FF or >= 0x0900 and <= 0x0DFF or >= 0x0E00 and <= 0x0E7F
+            or >= 0x1000 and <= 0x109F or >= 0x1780 and <= 0x17FF;
+
+    private static string QuoteCssFontFamily(string family)
+    {
+        var escaped = family.Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal)
+            .Replace("\r", "\\d ", StringComparison.Ordinal)
+            .Replace("\n", "\\a ", StringComparison.Ordinal);
+        return "\"" + escaped + "\"";
     }
 
     private string ConvertTable(OpenXmlElement table, CancellationToken cancellationToken)
@@ -438,10 +635,18 @@ internal sealed class WordprocessingMlHtmlConverter
         return style;
     }
 
-    private static Dictionary<string, string> GetParagraphStyle(OpenXmlElement paragraph)
+    private Dictionary<string, string> GetParagraphStyle(OpenXmlElement paragraph)
     {
         var style = new Dictionary<string, string>(StringComparer.Ordinal);
-        var properties = FindChild(paragraph, "pPr");
+        var paragraphStyleId = GetParagraphStyleId(paragraph);
+        foreach (var properties in GetStyleProperties(paragraphStyleId, "pPr").Reverse())
+            AddParagraphProperties(style, properties);
+        AddParagraphProperties(style, FindChild(paragraph, "pPr"));
+        return style;
+    }
+
+    private static void AddParagraphProperties(IDictionary<string, string> style, OpenXmlElement? properties)
+    {
         var alignment = GetAttribute(FindChild(properties, "jc"), "val");
         if (alignment is not null)
             style["text-align"] = alignment switch { "center" => "center", "right" or "end" => "right", "both" or "distribute" => "justify", _ => "left" };
@@ -474,7 +679,6 @@ internal sealed class WordprocessingMlHtmlConverter
             if (border is not null && GetAttribute(border, "val") is not ("nil" or "none"))
                 style["border-" + side] = $"{(ParsePositiveInt(GetAttribute(border, "sz"), 4) / 8d).ToString("0.##", CultureInfo.InvariantCulture)}pt solid {(IsHexColor(color) ? "#" + color : "#d1d5db")}";
         }
-        return style;
     }
 
     private bool IsOrderedList(string numId, int level)

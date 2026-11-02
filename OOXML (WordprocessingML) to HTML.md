@@ -28,7 +28,7 @@
 | w:br | Line Break | br | - |
 | w:cr | Carriage Return | br | - |
 | w:tab | Tab | &nbsp; | white-space |
-| w:lastRenderedPageBreak | Page Break | div.page-break | page-break-after |
+| w:lastRenderedPageBreak | Pagination hint from Word's previous layout | Ignored | Reflowed by the HTML renderer |
 
 ---
 
@@ -106,6 +106,8 @@ text-align:center;
 | w:color | color |
 | w:highlight | background-color |
 | w:spacing | letter-spacing |
+
+ฟอนต์และรูปแบบ run จะเลือกตามกลุ่มอักษรของข้อความ (`ascii`/`hAnsi`, `eastAsia`, `cs`) และรองรับฟอนต์ธีม (`*Theme`) โดยไล่ค่าจาก run, character/paragraph style ที่สืบทอดผ่าน `basedOn` และ `docDefaults` ระยะห่างและการจัดย่อหน้าก็สืบทอดจาก paragraph styles เช่นกัน ชื่อฟอนต์ Unicode และช่องว่างซ้ำในข้อความจะถูกเก็บไว้ใน HTML/CSS
 
 ---
 
