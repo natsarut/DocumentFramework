@@ -27,7 +27,7 @@
             </FluentGridItem>
 
             <FluentGridItem xs="12" md="6">
-                <div class="editor-panel">
+                <div class="editor-panel" style="display:none;">
                     <FluentLabel>Print settings</FluentLabel>
 
                     <div class="page-size-inline">
@@ -55,38 +55,16 @@
                 <FluentLabel>Preview</FluentLabel>
 
                 <div class="tab-group">
-                    <button class="tab-button @( _activePreviewTab == "html" ? "active" : "" )"
-                            type="button"
-                            @onclick='() => SetPreviewTab("html")'>
-                        HTML
-                    </button>
-
-                    <button class="tab-button @( _activePreviewTab == "browser" ? "active" : "" )"
-                            type="button"
-                            @onclick='() => SetPreviewTab("browser")'>
-                        Browser
-                    </button>
-
-                    <button class="tab-button @( _activePreviewTab == "pdf" ? "active" : "" )"
-                            type="button"
-                            @onclick='() => SetPreviewTab("pdf")'>
-                        PDF Preview
-                    </button>
-
+                    <button class="tab-button @( _activePreviewTab == "html" ? "active" : "" )" type="button" @onclick='() => SetPreviewTab("html")'>HTML</button>
+                    <button class="tab-button @( _activePreviewTab == "browser" ? "active" : "" )" type="button" @onclick='() => SetPreviewTab("browser")'>Preview in IFrame</button>
+                    
                     @if (!string.IsNullOrWhiteSpace(_browserPreviewUrl))
                     {
-                        <a class="tab-button preview-window-button"
-                           href="@_browserPreviewUrl"
-                           target="_blank"
-                           rel="noopener noreferrer">
-                            Open Preview in New Window
-                        </a>
+                        <a class="tab-button preview-window-button" href="@_browserPreviewUrl" target="_blank" rel="noopener noreferrer">Preview in New Window</a>
                     }
 
-                    <FluentButton Appearance="ButtonAppearance.Primary"
-                                  OnClick="ExportPdfAsync">
-                        Export PDF
-                    </FluentButton>
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="ExportPdfAsync">Export PDF</FluentButton>
+                    <button class="tab-button @( _activePreviewTab == "pdf" ? "active" : "" )" type="button" @onclick='() => SetPreviewTab("pdf")'>PDF Preview</button>
                 </div>
             </div>
 

@@ -1,4 +1,5 @@
-using Microsoft.Playwright;
+using PuppeteerSharp;
+using PuppeteerSharp.Media;
 using TemplateGenerator.Application.Contracts;
 using TemplateGenerator.Domain;
 
@@ -8,16 +9,21 @@ public sealed class PdfExportService : IPdfExportService
 {
     public async Task<byte[]> ExportAsync(string html, PageSettings pageSettings, CancellationToken cancellationToken = default)
     {
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(pageSettings);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        var page = await browser.NewPageAsync(new BrowserNewPageOptions
+        var browserFetcher = new BrowserFetcher();
+        var installedBrowser = await browserFetcher.DownloadAsync();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await using var browser = await Puppeteer.LaunchAsync(new LaunchOptions
         {
-            ViewportSize = new() { Width = 1440, Height = 1200 }
+            Headless = true,
+            ExecutablePath = installedBrowser.GetExecutablePath()
         });
+        await using var page = await browser.NewPageAsync();
+        await page.SetViewportAsync(new ViewPortOptions { Width = 1440, Height = 1200 });
 
         var printCss = BuildPageCss(pageSettings);
 
@@ -29,10 +35,11 @@ public sealed class PdfExportService : IPdfExportService
               </head>
               <body>{html}</body>
             </html>
-            """,
-            new PageSetContentOptions { WaitUntil = WaitUntilState.NetworkIdle });
+            """);
+        await page.EvaluateExpressionAsync("document.fonts.ready");
+        cancellationToken.ThrowIfCancellationRequested();
 
-        var pdfBytes = await page.PdfAsync(new PagePdfOptions
+        var pdfBytes = await page.PdfDataAsync(new PdfOptions
         {
             PrintBackground = true,
             Landscape = pageSettings.Orientation == PageOrientation.Landscape,
@@ -42,7 +49,7 @@ public sealed class PdfExportService : IPdfExportService
                 PaperSize.Legal => PaperFormat.Legal,
                 _ => PaperFormat.Letter
             },
-            Margin = new Margin
+            MarginOptions = new MarginOptions
             {
                 Top = $"{pageSettings.MarginTopMm}mm",
                 Right = $"{pageSettings.MarginRightMm}mm",
@@ -51,6 +58,7 @@ public sealed class PdfExportService : IPdfExportService
             }
         });
 
+        cancellationToken.ThrowIfCancellationRequested();
         return pdfBytes;
     }
 
