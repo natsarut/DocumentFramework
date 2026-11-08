@@ -93,7 +93,7 @@ internal sealed class WordprocessingMlHtmlConverter
             if (startNextSectionOnNewPage)
                 output.AppendLine("<div class=\"page-break\"></div>");
             startNextSectionOnNewPage = false;
-            output.Append("<section class=\"doc-section\" style=\"page:").Append(pageName).AppendLine(";\">");
+            output.Append("<section class=\"doc-section ").Append(pageName).Append("\" style=\"page:").Append(pageName).AppendLine(";\">");
             AppendBlocks(output, elements, cancellationToken);
             output.AppendLine("</section>");
             AppendPageRules(css, sectionProperties, pageName);
@@ -311,12 +311,20 @@ internal sealed class WordprocessingMlHtmlConverter
     private string ConvertRun(OpenXmlElement run, FieldState field, CancellationToken cancellationToken)
     {
         var output = new StringBuilder();
+        var properties = FindChild(run, "rPr");
+        var sources = GetRunFormattingSources(properties);
+        var standardFontSize = GetFontSizeCss(FindRunProperty(sources, "sz"));
+        var complexScriptFontSize = GetFontSizeCss(FindRunProperty(sources, "szCs"));
+        var hasDifferentComplexScriptSize = complexScriptFontSize is not null && complexScriptFontSize != standardFontSize;
         foreach (var child in run.ChildElements)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (NameIs(child, "rPr"))
                 continue;
-            output.Append(ConvertInline(child, field, cancellationToken));
+            if (hasDifferentComplexScriptSize && (NameIs(child, "t") || NameIs(child, "delText")))
+                output.Append(ConvertRunText(child, field, complexScriptFontSize!));
+            else
+                output.Append(ConvertInline(child, field, cancellationToken));
         }
         if (field.Active)
         {
@@ -327,7 +335,7 @@ internal sealed class WordprocessingMlHtmlConverter
         var content = output.ToString();
         if (content.Length == 0)
             return content;
-        return ApplyRunFormatting(content, FindChild(run, "rPr"), run.InnerText);
+        return ApplyRunFormatting(content, properties, run.InnerText);
     }
 
     private string ApplyRunFormatting(string content, OpenXmlElement? properties, string text)
@@ -336,9 +344,8 @@ internal sealed class WordprocessingMlHtmlConverter
         var style = new Dictionary<string, string>(StringComparer.Ordinal);
         if (ResolveRunFontFamily(sources, text) is { } fontFamily)
             style["font-family"] = fontFamily;
-        var size = GetAttribute(FindRunProperty(sources, "sz"), "val");
-        if (double.TryParse(size, NumberStyles.Number, CultureInfo.InvariantCulture, out var halfPoints))
-            style["font-size"] = (halfPoints / 2).ToString("0.##", CultureInfo.InvariantCulture) + "pt";
+        if (GetFontSizeCss(FindRunProperty(sources, "sz")) is { } fontSize)
+            style["font-size"] = fontSize;
         var color = GetAttribute(FindRunProperty(sources, "color"), "val");
         if (IsHexColor(color)) style["color"] = "#" + color;
         var highlight = GetAttribute(FindRunProperty(sources, "highlight"), "val");
@@ -359,6 +366,81 @@ internal sealed class WordprocessingMlHtmlConverter
         if (vertical == "superscript") content = $"<sup>{content}</sup>";
         if (vertical == "subscript") content = $"<sub>{content}</sub>";
         return style.Count == 0 ? content : $"<span{StyleAttribute(style)}>{content}</span>";
+    }
+
+    private string ConvertRunText(OpenXmlElement textElement, FieldState field, string complexScriptFontSize)
+    {
+        var rawText = textElement.InnerText;
+        var runes = rawText.EnumerateRunes().ToArray();
+        var output = new StringBuilder();
+        var segment = new StringBuilder();
+        var segmentIsComplexScript = false;
+        var hasSegment = false;
+
+        void AppendSegment()
+        {
+            if (!hasSegment)
+                return;
+
+            var encoded = System.Net.WebUtility.HtmlEncode(segment.ToString());
+            if (segmentIsComplexScript)
+                output.Append("<span style=\"font-size:").Append(complexScriptFontSize).Append("\">").Append(encoded).Append("</span>");
+            else
+                output.Append(encoded);
+            segment.Clear();
+        }
+
+        for (var index = 0; index < runes.Length; index++)
+        {
+            var isComplexScript = IsComplexScriptTextRune(runes, index);
+            if (hasSegment && isComplexScript != segmentIsComplexScript)
+                AppendSegment();
+            segmentIsComplexScript = isComplexScript;
+            hasSegment = true;
+            segment.Append(runes[index].ToString());
+        }
+        AppendSegment();
+
+        var text = output.ToString();
+        if (!field.Active && (GetAttribute(textElement, "space", "http://www.w3.org/XML/1998/namespace") == "preserve" || rawText.Contains("  ", StringComparison.Ordinal)))
+            text = "<span class=\"doc-preserve\">" + text + "</span>";
+        if (field.Active)
+        {
+            if (!field.InInstruction)
+                field.Result.Append(text);
+            return string.Empty;
+        }
+        return text;
+    }
+
+    private static string? GetFontSizeCss(OpenXmlElement? sizeProperty)
+    {
+        var size = GetAttribute(sizeProperty, "val");
+        return double.TryParse(size, NumberStyles.Number, CultureInfo.InvariantCulture, out var halfPoints)
+            ? (halfPoints / 2).ToString("0.##", CultureInfo.InvariantCulture) + "pt"
+            : null;
+    }
+
+    private static bool IsComplexScriptTextRune(Rune[] runes, int index)
+    {
+        if (IsComplexScriptCharacter(runes[index].Value))
+            return true;
+        if (!Rune.IsWhiteSpace(runes[index]))
+            return false;
+
+        for (var previous = index - 1; previous >= 0; previous--)
+        {
+            if (Rune.IsWhiteSpace(runes[previous]))
+                continue;
+            return IsComplexScriptCharacter(runes[previous].Value);
+        }
+        for (var next = index + 1; next < runes.Length; next++)
+        {
+            if (Rune.IsWhiteSpace(runes[next]))
+                continue;
+            return IsComplexScriptCharacter(runes[next].Value);
+        }
+        return false;
     }
 
     private List<OpenXmlElement?> GetRunFormattingSources(OpenXmlElement? runProperties)
@@ -638,11 +720,18 @@ internal sealed class WordprocessingMlHtmlConverter
     private Dictionary<string, string> GetParagraphStyle(OpenXmlElement paragraph)
     {
         var style = new Dictionary<string, string>(StringComparer.Ordinal);
+        AddParagraphProperties(style, GetDocumentDefaultParagraphProperties());
         var paragraphStyleId = GetParagraphStyleId(paragraph);
         foreach (var properties in GetStyleProperties(paragraphStyleId, "pPr").Reverse())
             AddParagraphProperties(style, properties);
         AddParagraphProperties(style, FindChild(paragraph, "pPr"));
         return style;
+    }
+
+    private OpenXmlElement? GetDocumentDefaultParagraphProperties()
+    {
+        var defaults = FindChild(_mainPart.StyleDefinitionsPart?.Styles, "docDefaults");
+        return FindChild(FindChild(defaults, "pPrDefault"), "pPr");
     }
 
     private static void AddParagraphProperties(IDictionary<string, string> style, OpenXmlElement? properties)
@@ -657,8 +746,22 @@ internal sealed class WordprocessingMlHtmlConverter
         if (int.TryParse(line, NumberStyles.Integer, CultureInfo.InvariantCulture, out var lineValue))
         {
             var lineRule = GetAttribute(spacing, "lineRule");
-            style["line-height"] = lineRule == "exact" ? (lineValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt" :
-                (lineRule == "atLeast" ? "max(1.5, " : string.Empty) + (lineValue / 240d).ToString("0.##", CultureInfo.InvariantCulture) + (lineRule == "atLeast" ? ")" : string.Empty);
+            var lineHeight = lineRule switch
+            {
+                "exact" => (lineValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt",
+                "atLeast" => "max(1em, " + (lineValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt)",
+                _ => (lineValue / 240d).ToString("0.###", CultureInfo.InvariantCulture)
+            };
+            style["line-height"] = lineHeight;
+        }
+        ApplyToggleProperty(style, properties, "keepNext", "break-after", "avoid-page");
+        ApplyToggleProperty(style, properties, "keepLines", "break-inside", "avoid-page");
+        ApplyToggleProperty(style, properties, "pageBreakBefore", "break-before", "page");
+        if (FindChild(properties, "widowControl") is { } widowControl)
+        {
+            var minimumLines = IsOn(widowControl) ? "2" : "1";
+            style["orphans"] = minimumLines;
+            style["widows"] = minimumLines;
         }
         var indent = FindChild(properties, "ind");
         AddTwips(style, "margin-left", GetAttribute(indent, "left") ?? GetAttribute(indent, "start"));
@@ -679,6 +782,17 @@ internal sealed class WordprocessingMlHtmlConverter
             if (border is not null && GetAttribute(border, "val") is not ("nil" or "none"))
                 style["border-" + side] = $"{(ParsePositiveInt(GetAttribute(border, "sz"), 4) / 8d).ToString("0.##", CultureInfo.InvariantCulture)}pt solid {(IsHexColor(color) ? "#" + color : "#d1d5db")}";
         }
+    }
+
+    private static void ApplyToggleProperty(IDictionary<string, string> style, OpenXmlElement? properties, string elementName, string cssProperty, string cssValue)
+    {
+        if (FindChild(properties, elementName) is not { } element)
+            return;
+
+        if (IsOn(element))
+            style[cssProperty] = cssValue;
+        else
+            style.Remove(cssProperty);
     }
 
     private bool IsOrderedList(string numId, int level)
@@ -910,12 +1024,34 @@ internal sealed class WordprocessingMlHtmlConverter
         var sizeCss = width > 0 && height > 0
             ? $"{(width / 1440d).ToString("0.###", CultureInfo.InvariantCulture)}in {(height / 1440d).ToString("0.###", CultureInfo.InvariantCulture)}in"
             : "A4 portrait";
-        var marginCss = string.Join(" ", new[] { "top", "right", "bottom", "left" }.Select(side =>
+        var marginProperties = new List<string>();
+        foreach (var side in new[] { "top", "right", "bottom", "left" })
         {
             var value = GetAttribute(margins, side);
-            return TryTwips(value, out var points) ? (points / 72d).ToString("0.###", CultureInfo.InvariantCulture) + "in" : "0.5in";
-        }));
-        css.Append("\n@page ").Append(pageName).Append(" { size: ").Append(sizeCss).Append("; margin: ").Append(marginCss).AppendLine("; }");
+            if (TryTwips(value, out var points))
+                marginProperties.Add($"margin-{side}:{(points / 72d).ToString("0.###", CultureInfo.InvariantCulture)}in");
+        }
+        css.Append("\n@page ").Append(pageName).Append(" { size: ").Append(sizeCss).Append(';');
+        if (marginProperties.Count > 0)
+            css.Append(' ').Append(string.Join("; ", marginProperties)).Append(';');
+        css.AppendLine(" }");
+
+        if (width > 0 && height > 0)
+        {
+            var screenMargins = string.Join("; ", new[] { "top", "right", "bottom", "left" }.Select(side =>
+            {
+                var value = GetAttribute(margins, side);
+                var padding = TryTwips(value, out var points)
+                    ? (points / 72d).ToString("0.###", CultureInfo.InvariantCulture) + "in"
+                    : "0";
+                return $"padding-{side}:{padding}";
+            }));
+            css.Append("\n@media screen { .doc-section.").Append(pageName)
+                .Append(" { box-sizing:border-box; width:").Append((width / 1440d).ToString("0.###", CultureInfo.InvariantCulture))
+                .Append("in; min-height:").Append((height / 1440d).ToString("0.###", CultureInfo.InvariantCulture))
+                .Append("in; ").Append(screenMargins)
+                .AppendLine("; margin:24px auto; background:#fff; box-shadow:0 1px 5px #0003; } .doc-root { background:#f3f4f6; padding:1px 0; } }");
+        }
     }
 
     private static void AddTwips(IDictionary<string, string> style, string name, string? value)
@@ -1021,9 +1157,9 @@ internal sealed class WordprocessingMlHtmlConverter
     }
 
     private const string DefaultDocumentCss = """
-.doc-root { font-family: "Segoe UI", Arial, sans-serif; color: #111; line-height: 1.5; background: #fff; }
-.doc-paragraph { margin: 0 0 0.75rem; }
-.doc-heading { margin: 0.75rem 0 0.5rem; font-weight: 700; }
+.doc-root { font-family: "Segoe UI", Arial, sans-serif; color: #111; line-height: 1.15; background: #fff; }
+.doc-paragraph { margin: 0; }
+.doc-heading { margin: 0; font-weight: 700; }
 h1.doc-heading { font-size: 2rem; } h2.doc-heading { font-size: 1.6rem; } h3.doc-heading { font-size: 1.35rem; }
 h4.doc-heading { font-size: 1.2rem; } h5.doc-heading { font-size: 1.05rem; } h6.doc-heading { font-size: 0.95rem; }
 .doc-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }

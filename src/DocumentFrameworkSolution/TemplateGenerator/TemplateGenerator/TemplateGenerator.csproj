@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="StaticFiles\htmlpage.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TemplateGenerator.Client\TemplateGenerator.Client.csproj" />
     <ProjectReference Include="..\TemplateGenerator.Application\TemplateGenerator.Application.csproj" />
     <ProjectReference Include="..\TemplateGenerator.Infrastructure\TemplateGenerator.Infrastructure.csproj" />

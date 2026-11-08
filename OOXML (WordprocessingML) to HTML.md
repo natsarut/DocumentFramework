@@ -73,6 +73,11 @@ text-align:center;
 | w:before | margin-top |
 | w:after | margin-bottom |
 | w:line | line-height |
+| w:keepNext | break-after: avoid-page |
+| w:keepLines | break-inside: avoid-page |
+| w:pageBreakBefore | break-before: page |
+
+`docDefaults` paragraph spacing/line-height is applied before paragraph styles and direct paragraph properties so later definitions override earlier ones like in Word.
 
 ---
 
@@ -102,12 +107,13 @@ text-align:center;
 | OOXML | CSS |
 |---------|---------|
 | w:rFonts | font-family |
-| w:sz | font-size |
+| w:sz | font-size for standard scripts |
+| w:szCs | font-size for complex scripts, including Thai |
 | w:color | color |
 | w:highlight | background-color |
 | w:spacing | letter-spacing |
 
-ฟอนต์และรูปแบบ run จะเลือกตามกลุ่มอักษรของข้อความ (`ascii`/`hAnsi`, `eastAsia`, `cs`) และรองรับฟอนต์ธีม (`*Theme`) โดยไล่ค่าจาก run, character/paragraph style ที่สืบทอดผ่าน `basedOn` และ `docDefaults` ระยะห่างและการจัดย่อหน้าก็สืบทอดจาก paragraph styles เช่นกัน ชื่อฟอนต์ Unicode และช่องว่างซ้ำในข้อความจะถูกเก็บไว้ใน HTML/CSS
+ฟอนต์และรูปแบบ run จะเลือกตามกลุ่มอักษรของข้อความ (`ascii`/`hAnsi`, `eastAsia`, `cs`) และรองรับฟอนต์ธีม (`*Theme`) โดยไล่ค่าจาก run, character/paragraph style ที่สืบทอดผ่าน `basedOn` และ `docDefaults` ขนาดของ complex script รวมถึงภาษาไทยใช้ `w:szCs` แยกจาก `w:sz`; หาก run มีหลายกลุ่มอักษร จะกำหนดขนาด complex script เฉพาะช่วงอักษรที่เกี่ยวข้อง ระยะห่างและการจัดย่อหน้าก็สืบทอดจาก paragraph styles เช่นกัน ชื่อฟอนต์ Unicode และช่องว่างซ้ำในข้อความจะถูกเก็บไว้ใน HTML/CSS
 
 ---
 
@@ -545,6 +551,523 @@ transform:rotate(30deg);
 | Equation | MathML |
 | Chart | SVG / Canvas |
 | SmartArt | SVG |
+
+---
+
+# Page Size in OOXML (WordprocessingML)
+
+## Overview
+
+ขนาดหน้ากระดาษ (Page Size) ใน Microsoft Word ถูกกำหนดโดย Element `w:pgSz` ซึ่งอยู่ภายใน Element `w:sectPr` (Section Properties)
+
+เนื่องจาก Word รองรับหลาย Section ภายในเอกสารเดียว แต่ละ Section สามารถกำหนดขนาดหน้ากระดาษ (Page Size) และการวางแนว (Orientation) ได้อย่างอิสระ
+
+---
+
+# XML Structure
+
+```xml
+<w:sectPr>
+
+    <w:pgSz
+        w:w="11906"
+        w:h="16838"/>
+
+</w:sectPr>
+```
+
+---
+
+# Element Definition
+
+| Element / Attribute | Description |
+|---------------------|-------------|
+| `w:sectPr` | Section Properties |
+| `w:pgSz` | Page Size Definition |
+| `w:w` | Page Width |
+| `w:h` | Page Height |
+| `w:orient` | Page Orientation |
+
+---
+
+# Measurement Unit
+
+ค่าของ `w:w` และ `w:h` ใช้หน่วย **Twips** (Twentieths of a Point)
+
+```text
+1 Point = 20 Twips
+1 Inch = 72 Points
+1 Inch = 1440 Twips
+```
+
+---
+
+# Common Page Sizes
+
+## A4 Portrait
+
+```xml
+<w:pgSz
+    w:w="11906"
+    w:h="16838"/>
+```
+
+### Dimensions
+
+```text
+Width  = 11906 / 1440 = 8.27 in
+Height = 16838 / 1440 = 11.69 in
+```
+
+Equivalent size:
+
+```text
+210 mm × 297 mm
+```
+
+---
+
+## A4 Landscape
+
+```xml
+<w:pgSz
+    w:w="16838"
+    w:h="11906"
+    w:orient="landscape"/>
+```
+
+Equivalent size:
+
+```text
+297 mm × 210 mm
+```
+
+---
+
+## Letter
+
+```xml
+<w:pgSz
+    w:w="12240"
+    w:h="15840"/>
+```
+
+Equivalent size:
+
+```text
+8.5" × 11"
+```
+
+---
+
+## Legal
+
+```xml
+<w:pgSz
+    w:w="12240"
+    w:h="20160"/>
+```
+
+Equivalent size:
+
+```text
+8.5" × 14"
+```
+
+---
+
+# Page Orientation
+
+Orientation ถูกกำหนดด้วย Attribute `w:orient`
+
+## Portrait (Default)
+
+```xml
+<w:pgSz
+    w:w="11906"
+    w:h="16838"/>
+```
+
+หรือ
+
+```xml
+<w:pgSz
+    w:w="11906"
+    w:h="16838"
+    w:orient="portrait"/>
+```
+
+---
+
+## Landscape
+
+```xml
+<w:pgSz
+    w:w="16838"
+    w:h="11906"
+    w:orient="landscape"/>
+```
+
+---
+
+# HTML/CSS Mapping
+
+## Standard A4
+
+```css
+@page {
+    size: A4;
+}
+```
+
+---
+
+## Standard Letter
+
+```css
+@page {
+    size: Letter;
+}
+```
+
+---
+
+## Custom Page Size
+
+### OOXML
+
+```xml
+<w:pgSz
+    w:w="11906"
+    w:h="16838"/>
+```
+
+### HTML/CSS
+
+```css
+@page {
+    size: 210mm 297mm;
+}
+```
+
+---
+
+# Relationship with Section Properties
+
+`w:pgSz` เป็นส่วนหนึ่งของ `w:sectPr`
+
+```xml
+<w:sectPr>
+
+    <w:pgSz/>
+
+    <w:pgMar/>
+
+    <w:cols/>
+
+    <w:headerReference/>
+
+    <w:footerReference/>
+
+    <w:pgNumType/>
+
+</w:sectPr>
+```
+
+---
+
+# Related Section Settings
+
+| Element | Purpose |
+|----------|---------|
+| `w:pgSz` | Page Size |
+| `w:pgMar` | Page Margins |
+| `w:cols` | Multi-column Layout |
+| `w:headerReference` | Header Assignment |
+| `w:footerReference` | Footer Assignment |
+| `w:pgNumType` | Page Number Settings |
+| `w:titlePg` | Different First Page |
+| `w:evenAndOddHeaders` | Different Odd/Even Pages |
+
+---
+
+# Example: Complete Section Definition
+
+```xml
+<w:sectPr>
+
+    <w:pgSz
+        w:w="11906"
+        w:h="16838"/>
+
+    <w:pgMar
+        w:top="1440"
+        w:right="1440"
+        w:bottom="1440"
+        w:left="1440"/>
+
+    <w:headerReference
+        w:type="default"
+        r:id="rId5"/>
+
+    <w:footerReference
+        w:type="default"
+        r:id="rId6"/>
+
+</w:sectPr>
+```
+
+---
+
+# Renderer Mapping Summary
+
+| OOXML Element | Renderer Mapping |
+|--------------|------------------|
+| `w:sectPr` | Section Container |
+| `w:pgSz` | Page Size |
+| `w:w` | Width |
+| `w:h` | Height |
+| `w:orient` | Portrait / Landscape |
+| `w:pgMar` | CSS Margin |
+| `w:headerReference` | Header |
+| `w:footerReference` | Footer |
+
+แต่ละ section จะสร้าง CSS named page (`@page doc-section-N`) จากความกว้าง/ความสูงใน `w:pgSz` และขอบบน/ขวา/ล่าง/ซ้ายที่ระบุใน `w:pgMar` โดยแปลงหน่วย twips เป็นนิ้ว หาก Word ไม่ได้ระบุขอบบางด้าน จะไม่กำหนดค่าแทนเอง เพื่อให้ค่าหน้ากระดาษเริ่มต้นของการ export มีผลเฉพาะด้านนั้น การส่งออก PDF ต้องให้ CSS `@page` มีลำดับความสำคัญเหนือค่าขนาดและขอบกระดาษส่วนกลาง
+
+---
+
+# Recommendation
+
+สำหรับ DOCX → HTML/PDF Renderer ควรใช้ `w:pgSz` เป็น Source of Truth สำหรับ
+
+- Page Width
+- Page Height
+- Page Orientation
+
+และใช้ร่วมกับ `w:pgMar` เพื่อคำนวณพื้นที่แสดงผล (Printable Area) ของแต่ละ Section อย่างถูกต้อง
+
+---
+
+# Rendering Word Page Margins in HTML
+
+## Overview
+
+ใน Word ระยะขอบกระดาษ (Page Margin) ถูกกำหนดด้วย Element `w:pgMar` ภายใน `w:sectPr`
+
+```xml
+<w:sectPr>
+
+    <w:pgSz
+        w:w="11906"
+        w:h="16838"/>
+
+    <w:pgMar
+        w:top="1440"
+        w:right="1440"
+        w:bottom="1440"
+        w:left="1440"/>
+
+</w:sectPr>
+```
+
+> สำหรับ HTML ที่แสดงบนหน้าจอ ให้แปลงขนาดหน้าและค่า Margin เป็นความกว้าง/ความสูงและ **CSS Padding** ของ Page Container เพื่อจำลองแผ่นกระดาษของ Word ส่วนการพิมพ์/ส่งออก PDF ให้ใช้ `@page` margins และไม่ใช้ padding จำลองซ้ำ
+
+---
+
+## Page Margin Attributes
+
+| Attribute | Description |
+|------------|------------|
+| `w:top` | Top Margin |
+| `w:right` | Right Margin |
+| `w:bottom` | Bottom Margin |
+| `w:left` | Left Margin |
+| `w:header` | Header Position |
+| `w:footer` | Footer Position |
+| `w:gutter` | Binding Margin |
+
+---
+
+## Unit Conversion
+
+ค่าทั้งหมดใน `w:pgMar` ใช้หน่วย **Twips**
+
+```text
+1 inch = 1440 twips
+1 inch = 25.4 mm
+```
+
+ตัวอย่าง
+
+```xml
+<w:pgMar
+    w:top="1440"
+    w:right="1440"
+    w:bottom="1440"
+    w:left="1440"/>
+```
+
+เท่ากับ
+
+```text
+Top    = 25.4 mm
+Right  = 25.4 mm
+Bottom = 25.4 mm
+Left   = 25.4 mm
+```
+
+---
+
+## HTML Mapping
+
+### HTML/CSS
+
+ตัวแปลงสร้าง `<section class="doc-section doc-section-N">` สำหรับแต่ละ section ของ Word โดยใช้ขนาดหน้าจาก `w:pgSz` และระยะขอบจาก `w:pgMar`:
+
+```css
+@media screen {
+  .doc-section.doc-section-1 {
+    box-sizing: border-box;
+    width: 8.5in;
+    min-height: 11in;
+    padding-top: 1in;
+    padding-right: 1in;
+    padding-bottom: 1in;
+    padding-left: 1in;
+  }
+}
+
+@page doc-section-1 {
+  size: 8.5in 11in;
+  margin-top: 1in;
+  margin-right: 1in;
+  margin-bottom: 1in;
+  margin-left: 1in;
+}
+```
+
+บนหน้าจอใช้ CSS padding เพื่อให้เห็นพื้นที่ขอบกระดาษ ส่วนการพิมพ์และส่งออก PDF ใช้ `@page` margins โดยไม่ใช้ padding จำลองซ้ำ
+
+---
+
+## Printable Area
+
+การคำนวณพื้นที่เนื้อหา
+
+```text
+Content Width
+=
+Page Width
+− Left Margin
+− Right Margin
+```
+
+ตัวอย่าง A4
+
+```text
+210
+− 25.4
+− 25.4
+=
+159.2 mm
+```
+
+---
+
+## Reading Margins with C#
+
+```csharp
+var margin = sectionProperties.PageMargin;
+
+double top =
+    margin.Top!.Value * 25.4 / 1440;
+
+double right =
+    margin.Right!.Value * 25.4 / 1440;
+
+double bottom =
+    margin.Bottom!.Value * 25.4 / 1440;
+
+double left =
+    margin.Left!.Value * 25.4 / 1440;
+```
+
+สร้าง CSS
+
+```csharp
+var padding = $@"
+padding:
+    {top:F2}mm
+    {right:F2}mm
+    {bottom:F2}mm
+    {left:F2}mm;";
+```
+
+---
+
+## Header/Footer Position
+
+Word แยกตำแหน่ง Header และ Footer จาก Margin
+
+```xml
+<w:pgMar
+    w:top="1440"
+    w:bottom="1440"
+    w:header="720"
+    w:footer="720"/>
+```
+
+```text
+Top Margin      = 25.4 mm
+Header Position = 12.7 mm
+
+Bottom Margin   = 25.4 mm
+Footer Position = 12.7 mm
+```
+
+---
+
+## Browser PDF Rendering
+
+```css
+@page {
+    size: A4;
+
+    margin:
+        25.4mm
+        25.4mm
+        25.4mm
+        25.4mm;
+}
+```
+
+---
+
+## Best Practice
+
+1. อ่านขนาดกระดาษจาก `w:pgSz`
+2. อ่านระยะขอบจาก `w:pgMar`
+3. สร้าง Page Container แทนกระดาษจริง
+4. ใช้ `padding` แทน `margin`
+5. กำหนด `box-sizing: border-box`
+6. คำนวณ Printable Area จาก Page Size และ Margins
+
+---
+
+## Mapping Summary
+
+| OOXML | HTML/CSS |
+|---------|-----------|
+| `w:pgSz` | Width / Height |
+| `w:pgMar` | Padding |
+| `w:top` | padding-top |
+| `w:right` | padding-right |
+| `w:bottom` | padding-bottom |
+| `w:left` | padding-left |
+| `w:header` | Header Position |
+| `w:footer` | Footer Position |
+
+> แนวทาง **Page Container + Padding + Box Sizing** ให้ผลลัพธ์ใกล้เคียง Microsoft Word มากที่สุดทั้งการ Preview บนเว็บและการ Export PDF
 
 ---
 

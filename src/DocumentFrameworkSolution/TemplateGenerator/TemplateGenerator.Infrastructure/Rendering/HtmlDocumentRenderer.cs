@@ -36,7 +36,7 @@ public sealed class HtmlDocumentRenderer : IHtmlDocumentRenderer
         }
 
         var html = htmlBuilder.ToString();
-        var css = GetPrintCss();
+        var css = GetPrintCss(includeDefaultPageRule: true);
 
         return BuildDocumentHtml(html, css);
     }
@@ -46,9 +46,11 @@ public sealed class HtmlDocumentRenderer : IHtmlDocumentRenderer
         ArgumentNullException.ThrowIfNull(html);
         ArgumentNullException.ThrowIfNull(css);
 
+        var hasWordSectionPageRules = css.Contains("@page doc-section-", StringComparison.OrdinalIgnoreCase);
+        var defaultCss = GetPrintCss(includeDefaultPageRule: !hasWordSectionPageRules);
         var effectiveCss = string.IsNullOrWhiteSpace(css)
-            ? GetPrintCss()
-            : GetPrintCss() + Environment.NewLine + css;
+            ? defaultCss
+            : defaultCss + Environment.NewLine + css;
 
         return BuildDocumentHtml(html, effectiveCss);
     }
@@ -90,21 +92,19 @@ public sealed class HtmlDocumentRenderer : IHtmlDocumentRenderer
     private static string HtmlEncode(string? value)
         => System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
 
-    private static string GetPrintCss()
+    private static string GetPrintCss(bool includeDefaultPageRule = false)
     {
-        return """
-@page {
-  size: A4 portrait;
-  margin: 12mm 12mm 12mm 12mm;
-}
-
+        var defaultPageRule = includeDefaultPageRule
+            ? "@page { size: A4 portrait; margin: 12mm 12mm 12mm 12mm; }" + Environment.NewLine
+            : string.Empty;
+        return defaultPageRule + """
 html, body {
   margin: 0;
   padding: 0;
   background: white;
   color: #111;
   font-family: "Segoe UI", Arial, sans-serif;
-  line-height: 1.5;
+  line-height: 1.15;
 }
 
 body {
@@ -113,24 +113,13 @@ body {
 
 .document-shell {
   width: 100%;
-  max-width: 210mm;
+  max-width: none;
   margin: 0 auto;
   padding: 0;
 }
 
   .doc-section {
   page-break-inside: auto;
-}
-
-.doc-paragraph,
-.doc-heading,
-.doc-list,
-.doc-table,
-.doc-image,
-.doc-link,
-.doc-textbox,
-.doc-shape {
-  break-inside: avoid;
 }
 
 .doc-header,

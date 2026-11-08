@@ -1,3 +1,4 @@
+using Microsoft.Extensions.FileProviders;
 using Microsoft.FluentUI.AspNetCore.Components;
 using TemplateGenerator.Application.Contracts;
 using TemplateGenerator.Application.Services;
@@ -38,6 +39,12 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 
 app.UseAntiforgery();
+
+app.UseFileServer(new FileServerOptions
+{
+    FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "StaticFiles")),
+    RequestPath = "/static-files"
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
