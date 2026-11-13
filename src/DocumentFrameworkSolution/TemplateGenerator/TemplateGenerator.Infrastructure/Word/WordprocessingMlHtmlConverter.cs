@@ -169,7 +169,19 @@ internal sealed class WordprocessingMlHtmlConverter
             "title" => "h1", "subtitle" => "h2", "quote" or "intensequote" => "blockquote",
             _ => "p"
         };
-        return $"<{tag} class=\"{(tag == "p" ? "doc-paragraph" : "doc-heading") }\"{StyleAttribute(GetParagraphStyle(paragraph))}>{ConvertParagraphContent(paragraph, cancellationToken)}</{tag}>";
+        var paragraphStyle = GetParagraphStyle(paragraph);
+        if (styleId.ToLowerInvariant() is "heading1" or "heading2" or "heading3" or "heading4" or "heading5" or "heading6")
+            paragraphStyle["font-weight"] = ResolveHeadingFontWeight(styleId);
+        return $"<{tag} class=\"{(tag == "p" ? "doc-paragraph" : "doc-heading") }\"{StyleAttribute(paragraphStyle)}>{ConvertParagraphContent(paragraph, cancellationToken)}</{tag}>";
+    }
+
+    private string ResolveHeadingFontWeight(string styleId)
+    {
+        var bold = GetStyleProperties(styleId, "rPr")
+            .Select(properties => FindChild(properties, "b"))
+            .FirstOrDefault(property => property is not null)
+            ?? FindChild(GetDocumentDefaultRunProperties(), "b");
+        return IsOn(bold) ? "700" : "400";
     }
 
     private string ConvertParagraphContent(OpenXmlElement paragraph, CancellationToken cancellationToken)
