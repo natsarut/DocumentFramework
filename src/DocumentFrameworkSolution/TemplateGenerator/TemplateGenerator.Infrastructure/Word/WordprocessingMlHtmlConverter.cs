@@ -25,7 +25,7 @@ internal sealed class WordprocessingMlHtmlConverter
     public static WordConversionResult Convert(MainDocumentPart mainPart, CancellationToken cancellationToken)
     {
         var converter = new WordprocessingMlHtmlConverter(mainPart);
-        var body = mainPart.Document.Body ?? throw new InvalidOperationException("Word document body not found.");
+        var body = mainPart.Document?.Body ?? throw new InvalidOperationException("Word document body not found.");
         var html = new StringBuilder();
         var css = new StringBuilder(DefaultDocumentCss);
 

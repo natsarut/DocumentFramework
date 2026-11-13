@@ -8,39 +8,39 @@ namespace TemplateGenerator.Infrastructure.Word;
 
 public sealed class WordDocumentParser : IWordDocumentParser
 {
-    public async Task<DocumentModel> ParseAsync(Stream stream, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(stream);
+    //public async Task<DocumentModel> ParseAsync(Stream stream, CancellationToken cancellationToken = default)
+    //{
+    //    ArgumentNullException.ThrowIfNull(stream);
 
-        using var memoryStream = new MemoryStream();
-        await stream.CopyToAsync(memoryStream, cancellationToken);
-        memoryStream.Position = 0;
+    //    using var memoryStream = new MemoryStream();
+    //    await stream.CopyToAsync(memoryStream, cancellationToken);
+    //    memoryStream.Position = 0;
 
-        using var document = WordprocessingDocument.Open(memoryStream, false);
-        var body = document.MainDocumentPart?.Document.Body ?? throw new InvalidOperationException("Document body not found.");
+    //    using var document = WordprocessingDocument.Open(memoryStream, false);
+    //    var body = document.MainDocumentPart?.Document?.Body ?? throw new InvalidOperationException("Document body not found.");
 
-        var model = new DocumentModel();
-        var section = new Section();
+    //    var model = new DocumentModel();
+    //    var section = new Section();
 
-        foreach (var element in body.ChildElements)
-        {
-            switch (element)
-            {
-                case Paragraph paragraph:
-                    section.Blocks.Add(ParseParagraph(paragraph));
-                    break;
-                case Table table:
-                    section.Blocks.Add(ParseTable(table));
-                    break;
-                case Break breakElement when breakElement.Type == BreakValues.Page:
-                    section.Blocks.Add(new Block { Type = BlockType.PageBreak, Html = "<div class=\"page-break\"></div>" });
-                    break;
-            }
-        }
+    //    foreach (var element in body.ChildElements)
+    //    {
+    //        switch (element)
+    //        {
+    //            case Paragraph paragraph:
+    //                section.Blocks.Add(ParseParagraph(paragraph));
+    //                break;
+    //            case Table table:
+    //                section.Blocks.Add(ParseTable(table));
+    //                break;
+    //            case Break breakElement when breakElement.Type == BreakValues.Page:
+    //                section.Blocks.Add(new Block { Type = BlockType.PageBreak, Html = "<div class=\"page-break\"></div>" });
+    //                break;
+    //        }
+    //    }
 
-        model.Sections.Add(section);
-        return model;
-    }
+    //    model.Sections.Add(section);
+    //    return model;
+    //}
 
     private static Block ParseParagraph(Paragraph paragraph)
     {

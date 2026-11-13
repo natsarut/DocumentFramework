@@ -1,5 +1,7 @@
 <Solution>
-  <Folder Name="/0-Cross Cuttings/" />
+  <Folder Name="/0-Cross Cuttings/">
+    <Project Path="DocumentFrameworkSolution.AppHost/DocumentFrameworkSolution.AppHost.csproj" />
+  </Folder>
   <Folder Name="/1-Domains/">
     <Project Path="TemplateGenerator/TemplateGenerator.Domain/TemplateGenerator.Domain.csproj" />
   </Folder>
