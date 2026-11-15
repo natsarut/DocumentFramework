@@ -333,8 +333,8 @@ internal sealed class WordprocessingMlHtmlConverter
             cancellationToken.ThrowIfCancellationRequested();
             if (NameIs(child, "rPr"))
                 continue;
-            if (hasDifferentComplexScriptSize && (NameIs(child, "t") || NameIs(child, "delText")))
-                output.Append(ConvertRunText(child, field, complexScriptFontSize!));
+            if (NameIs(child, "t") || NameIs(child, "delText"))
+                output.Append(ConvertRunText(child, field, hasDifferentComplexScriptSize ? complexScriptFontSize : null, sources));
             else
                 output.Append(ConvertInline(child, field, cancellationToken));
         }
@@ -380,35 +380,40 @@ internal sealed class WordprocessingMlHtmlConverter
         return style.Count == 0 ? content : $"<span{StyleAttribute(style)}>{content}</span>";
     }
 
-    private string ConvertRunText(OpenXmlElement textElement, FieldState field, string complexScriptFontSize)
+    private string ConvertRunText(OpenXmlElement textElement, FieldState field, string? complexScriptFontSize, List<OpenXmlElement?> sources)
     {
         var rawText = textElement.InnerText;
         var runes = rawText.EnumerateRunes().ToArray();
+        var parenthesisFontSlots = GetParenthesisFontSlots(runes);
         var output = new StringBuilder();
         var segment = new StringBuilder();
-        var segmentIsComplexScript = false;
-        var hasSegment = false;
+        Dictionary<string, string>? segmentStyle = null;
 
         void AppendSegment()
         {
-            if (!hasSegment)
+            if (segment.Length == 0 || segmentStyle is null)
                 return;
 
             var encoded = System.Net.WebUtility.HtmlEncode(segment.ToString());
-            if (segmentIsComplexScript)
-                output.Append("<span style=\"font-size:").Append(complexScriptFontSize).Append("\">").Append(encoded).Append("</span>");
-            else
+            if (segmentStyle.Count == 0)
                 output.Append(encoded);
+            else
+                output.Append("<span").Append(StyleAttribute(segmentStyle)).Append('>').Append(encoded).Append("</span>");
             segment.Clear();
         }
 
         for (var index = 0; index < runes.Length; index++)
         {
-            var isComplexScript = IsComplexScriptTextRune(runes, index);
-            if (hasSegment && isComplexScript != segmentIsComplexScript)
+            var style = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (complexScriptFontSize is not null && IsComplexScriptTextRune(runes, index))
+                style["font-size"] = complexScriptFontSize;
+            if (parenthesisFontSlots.TryGetValue(index, out var slot) && ResolveRunFontFamily(sources, slot, rawText) is { } fontFamily)
+                style["font-family"] = QuoteCssFontFamily(fontFamily);
+
+            if (segmentStyle is not null &&
+                (style.Count != segmentStyle.Count || style.Any(item => !segmentStyle.TryGetValue(item.Key, out var value) || value != item.Value)))
                 AppendSegment();
-            segmentIsComplexScript = isComplexScript;
-            hasSegment = true;
+            segmentStyle = style;
             segment.Append(runes[index].ToString());
         }
         AppendSegment();
@@ -473,22 +478,28 @@ internal sealed class WordprocessingMlHtmlConverter
         var families = new List<string>();
         foreach (var slot in GetFontSlots(text))
         {
-            foreach (var source in sources)
-            {
-                var fonts = FindChild(source, "rFonts");
-                if (fonts is null)
-                    continue;
-
-                var family = ResolveDeclaredFont(fonts, slot, text);
-                if (!string.IsNullOrWhiteSpace(family) && !families.Contains(family, StringComparer.OrdinalIgnoreCase))
-                {
-                    families.Add(family);
-                    break;
-                }
-            }
+            var family = ResolveRunFontFamily(sources, slot, text);
+            if (!string.IsNullOrWhiteSpace(family) && !families.Contains(family, StringComparer.OrdinalIgnoreCase))
+                families.Add(family);
         }
 
         return families.Count == 0 ? null : string.Join(", ", families.Select(QuoteCssFontFamily));
+    }
+
+    private string? ResolveRunFontFamily(IEnumerable<OpenXmlElement?> sources, string slot, string text)
+    {
+        foreach (var source in sources)
+        {
+            var fonts = FindChild(source, "rFonts");
+            if (fonts is null)
+                continue;
+
+            var family = ResolveDeclaredFont(fonts, slot, text);
+            if (!string.IsNullOrWhiteSpace(family))
+                return family;
+        }
+
+        return null;
     }
 
     private string? ResolveDocumentDefaultFontFamily()
@@ -630,6 +641,67 @@ internal sealed class WordprocessingMlHtmlConverter
     private static bool IsEastAsianCharacter(int value)
         => value is >= 0x2E80 and <= 0xA4CF or >= 0xAC00 and <= 0xD7AF or >= 0xF900 and <= 0xFAFF
             or >= 0xFE30 and <= 0xFE4F or >= 0xFF00 and <= 0xFFEF or >= 0x20000 and <= 0x323AF;
+
+    private static Dictionary<int, string> GetParenthesisFontSlots(Rune[] runes)
+    {
+        var pairs = new List<(int OpeningIndex, int ClosingIndex)>();
+        var openings = new List<(int Index, int ClosingValue)>();
+        for (var index = 0; index < runes.Length; index++)
+        {
+            var value = runes[index].Value;
+            if (value is 0x28 or 0xFF08)
+            {
+                openings.Add((index, value == 0x28 ? 0x29 : 0xFF09));
+                continue;
+            }
+
+            for (var openingIndex = openings.Count - 1; openingIndex >= 0; openingIndex--)
+            {
+                if (openings[openingIndex].ClosingValue != value)
+                    continue;
+
+                pairs.Add((openings[openingIndex].Index, index));
+                openings.RemoveAt(openingIndex);
+                break;
+            }
+        }
+
+        var fontSlots = new Dictionary<int, string>();
+        foreach (var (openingIndex, closingIndex) in pairs)
+        {
+            var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+            string? firstSlot = null;
+            for (var index = openingIndex + 1; index < closingIndex; index++)
+            {
+                var rune = runes[index];
+                var category = Rune.GetUnicodeCategory(rune);
+                if (!Rune.IsLetter(rune) && category is not (UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark))
+                    continue;
+
+                var slot = IsEastAsianCharacter(rune.Value) ? "eastAsia" : IsComplexScriptCharacter(rune.Value) ? "cs" : "ascii";
+                firstSlot ??= slot;
+                counts[slot] = counts.GetValueOrDefault(slot) + 1;
+            }
+
+            if (firstSlot is null)
+                continue;
+
+            var dominantSlot = firstSlot;
+            var dominantCount = 0;
+            foreach (var (slot, count) in counts)
+            {
+                if (count > dominantCount)
+                {
+                    dominantSlot = slot;
+                    dominantCount = count;
+                }
+            }
+            fontSlots[openingIndex] = dominantSlot;
+            fontSlots[closingIndex] = dominantSlot;
+        }
+
+        return fontSlots;
+    }
 
     private static bool IsComplexScriptCharacter(int value)
         => value is >= 0x0590 and <= 0x08FF or >= 0x0900 and <= 0x0DFF or >= 0x0E00 and <= 0x0E7F
@@ -1169,11 +1241,11 @@ internal sealed class WordprocessingMlHtmlConverter
     }
 
     private const string DefaultDocumentCss = """
-.doc-root { font-family: "Segoe UI", Arial, sans-serif; color: #111; line-height: 1.15; background: #fff; }
-.doc-paragraph { margin: 0; }
-.doc-heading { margin: 0; font-weight: 700; }
 h1.doc-heading { font-size: 2rem; } h2.doc-heading { font-size: 1.6rem; } h3.doc-heading { font-size: 1.35rem; }
 h4.doc-heading { font-size: 1.2rem; } h5.doc-heading { font-size: 1.05rem; } h6.doc-heading { font-size: 0.95rem; }
+.doc-root { font-family: "Segoe UI", Arial, sans-serif; color: #111; line-height: 1.15; background: #fff; }
+.doc-paragraph { margin: 0; }
+.doc-heading { margin: 0; font-weight: normal; }
 .doc-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
 .doc-table th, .doc-table td { border: 1px solid #d1d5db; padding: 6px 8px; vertical-align: top; }
 .doc-list { margin: 0.25rem 0 0.75rem 1.5rem; padding-left: 0.75rem; }

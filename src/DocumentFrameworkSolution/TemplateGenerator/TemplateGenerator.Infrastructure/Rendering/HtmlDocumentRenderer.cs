@@ -68,9 +68,10 @@ public sealed class HtmlDocumentRenderer : IHtmlDocumentRenderer
 
     private static string BuildDocumentHtml(string bodyHtml, string css)
     {
+        var language = bodyHtml.EnumerateRunes().Any(rune => rune.Value is >= 0x0E00 and <= 0x0E7F) ? "th" : "en";
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html>");
-        sb.AppendLine("<html lang=\"en\">");
+        sb.Append("<html lang=\"").Append(language).AppendLine("\">");
         sb.AppendLine("<head>");
         sb.AppendLine("  <meta charset=\"utf-8\" />");
         sb.AppendLine("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />");

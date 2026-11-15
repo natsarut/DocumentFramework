@@ -60,7 +60,6 @@ public sealed class PdfExportService : IPdfExportService
 
         body {{
           margin: 0;
-          font-family: 'Segoe UI', sans-serif;
           color: #111;
           background: white;
         }}
