@@ -350,33 +350,98 @@ internal sealed class WordprocessingMlHtmlConverter
         return ApplyRunFormatting(content, properties, run.InnerText);
     }
 
+    /// <summary>
+    /// Applies formatting to a run of text based on the provided properties and returns the formatted HTML string.
+    /// </summary>
+    /// <param name="content">The text content of the run.</param>
+    /// <param name="properties">The properties element containing formatting information.</param>
+    /// <param name="text">The original text of the run.</param>
+    /// <returns>The formatted HTML string.</returns>
     private string ApplyRunFormatting(string content, OpenXmlElement? properties, string text)
     {
         var sources = GetRunFormattingSources(properties);
         var style = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (ResolveRunFontFamily(sources, text) is { } fontFamily)
-            style["font-family"] = fontFamily;
-        if (GetFontSizeCss(FindRunProperty(sources, "sz")) is { } fontSize)
-            style["font-size"] = fontSize;
-        var color = GetAttribute(FindRunProperty(sources, "color"), "val");
-        if (IsHexColor(color)) style["color"] = "#" + color;
-        var highlight = GetAttribute(FindRunProperty(sources, "highlight"), "val");
-        if (TryGetHighlightColor(highlight, out var highlightColor)) style["background-color"] = highlightColor;
-        var spacing = GetAttribute(FindRunProperty(sources, "spacing"), "val");
-        if (int.TryParse(spacing, NumberStyles.Integer, CultureInfo.InvariantCulture, out var spacingValue))
-            style["letter-spacing"] = (spacingValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt";
 
-        if (IsOn(FindRunProperty(sources, "b"))) content = $"<strong>{content}</strong>";
-        if (IsOn(FindRunProperty(sources, "i"))) content = $"<em>{content}</em>";
-        if (IsOn(FindRunProperty(sources, "u"))) content = $"<span style=\"text-decoration:underline\">{content}</span>";
+        if (ResolveRunFontFamily(sources, text) is { } fontFamily)
+        { 
+            style["font-family"] = fontFamily; 
+        }
+            
+        if (GetFontSizeCss(FindRunProperty(sources, "sz")) is { } fontSize)
+        {
+            style["font-size"] = fontSize;
+        }
+            
+        var color = GetAttribute(FindRunProperty(sources, "color"), "val");
+
+        if (IsHexColor(color))
+        { 
+            style["color"] = $"#{color}"; 
+        }
+
+        var highlight = GetAttribute(FindRunProperty(sources, "highlight"), "val");
+
+        if (TryGetHighlightColor(highlight, out var highlightColor)) 
+        {
+            style["background-color"] = highlightColor;
+        }
+
+        var spacing = GetAttribute(FindRunProperty(sources, "spacing"), "val");
+
+        if (int.TryParse(spacing, NumberStyles.Integer, CultureInfo.InvariantCulture, out var spacingValue))
+        {
+            style["letter-spacing"] = (spacingValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt";
+        }
+
+        string? underline = GetAttribute(FindRunProperty(sources, "u"), "val");
+
+        if (TryGetUnderlineStyle(underline, out var underlineStyle))
+        {
+            style["text-decoration"] = underlineStyle;
+        }
+
+        if (IsOn(FindRunProperty(sources, "b")))
+        { 
+            content = $"<strong>{content}</strong>"; 
+        }
+
+        if (IsOn(FindRunProperty(sources, "i"))) 
+        { 
+            content = $"<em>{content}</em>"; 
+        }
+
         if (IsOn(FindRunProperty(sources, "strike")) || IsOn(FindRunProperty(sources, "dstrike")))
+        {
             content = $"<del>{content}</del>";
-        if (IsOn(FindRunProperty(sources, "caps"))) style["text-transform"] = "uppercase";
-        if (IsOn(FindRunProperty(sources, "smallCaps"))) style["font-variant"] = "small-caps";
-        if (IsOn(FindRunProperty(sources, "vanish"))) style["display"] = "none";
+        }
+
+        if (IsOn(FindRunProperty(sources, "caps"))) 
+        { 
+            style["text-transform"] = "uppercase"; 
+        }
+
+        if (IsOn(FindRunProperty(sources, "smallCaps"))) 
+        { 
+            style["font-variant"] = "small-caps"; 
+        }
+
+        if (IsOn(FindRunProperty(sources, "vanish"))) 
+        { 
+            style["display"] = "none"; 
+        }
+
         var vertical = GetAttribute(FindRunProperty(sources, "vertAlign"), "val");
-        if (vertical == "superscript") content = $"<sup>{content}</sup>";
-        if (vertical == "subscript") content = $"<sub>{content}</sub>";
+
+        if (vertical == "superscript") 
+        { 
+            content = $"<sup>{content}</sup>"; 
+        }
+
+        if (vertical == "subscript") 
+        { 
+            content = $"<sub>{content}</sub>"; 
+        }
+
         return style.Count == 0 ? content : $"<span{StyleAttribute(style)}>{content}</span>";
     }
 
@@ -1219,6 +1284,21 @@ internal sealed class WordprocessingMlHtmlConverter
             _ => string.Empty
         };
         return color.Length > 0;
+    }
+
+    private static bool TryGetUnderlineStyle(string? value, out string style)
+    {
+        style = value?.ToLowerInvariant() switch
+        {
+            "single" => "underline",
+            "double" => "underline double",
+            "dotted" => "underline dotted",
+            "dashed" => "underline dashed",
+            "wave" => "underline wavy",
+            "thick" => "underline solid",
+            _ => string.Empty
+        };
+        return style.Length > 0;
     }
 
     private static string SvgNumber(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);

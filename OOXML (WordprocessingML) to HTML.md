@@ -1071,6 +1071,115 @@ Footer Position = 12.7 mm
 
 ---
 
+# Mapping ระหว่าง OOXML `<w:u>` และ CSS `text-decoration-style`
+
+> หมายเหตุ: CSS ไม่สามารถจำลองรูปแบบ Underline ของ Microsoft Word ได้ครบทุกแบบ 100% บางค่าอาจต้องใช้ Border, SVG หรือ Custom Rendering เพื่อให้ได้ผลลัพธ์ใกล้เคียงที่สุด
+
+| Word OOXML (`w:u`) | Word Appearance | CSS Mapping | Notes |
+|-------------------|------------------|-------------|--------|
+| `single` | เส้นใต้เดี่ยว | `text-decoration: underline;` | รองรับตรงที่สุด |
+| `words` | ขีดเส้นใต้เฉพาะคำ | `text-decoration: underline;` | CSS ไม่มี equivalent โดยตรง |
+| `double` | เส้นใต้คู่ | `text-decoration-line: underline; text-decoration-style: double;` | Browser สมัยใหม่รองรับ |
+| `thick` | เส้นใต้หนา | `text-decoration-thickness: 2px;` | ใกล้เคียง |
+| `dotted` | เส้นใต้จุด | `text-decoration-style: dotted;` | ใกล้เคียง |
+| `dottedHeavy` | เส้นใต้จุดหนา | `text-decoration-style: dotted; text-decoration-thickness: 2px;` | ประมาณค่า |
+| `dash` | เส้นใต้ขีด | `text-decoration-style: dashed;` | ใกล้เคียง |
+| `dashedHeavy` | เส้นใต้ขีดหนา | `text-decoration-style: dashed; text-decoration-thickness: 2px;` | ประมาณค่า |
+| `dashLong` | เส้นใต้ขีดยาว | `border-bottom: 1px dashed;` | CSS ไม่มีเส้นยาวแบบ Word |
+| `dashLongHeavy` | เส้นใต้ขีดยาวหนา | `border-bottom: 2px dashed;` | ประมาณค่า |
+| `dotDash` | จุด-ขีด | ไม่รองรับโดยตรง | ใช้ SVG หรือ Border Image |
+| `dotDashHeavy` | จุด-ขีด (หนา) | ไม่รองรับโดยตรง | Custom Render |
+| `dotDotDash` | จุด-จุด-ขีด | ไม่รองรับโดยตรง | Custom Render |
+| `dotDotDashHeavy` | จุด-จุด-ขีด (หนา) | ไม่รองรับโดยตรง | Custom Render |
+| `wave` | เส้นหยัก | `text-decoration-style: wavy;` | รองรับโดยตรง |
+| `wavyHeavy` | เส้นหยักหนา | `text-decoration-style: wavy; text-decoration-thickness: 2px;` | ใกล้เคียง |
+| `wavyDouble` | เส้นหยักคู่ | ไม่รองรับโดยตรง | SVG แนะนำ |
+| `none` | ไม่มีเส้นใต้ | `text-decoration: none;` | ตรงกัน |
+| `nil` | ยกเลิกเส้นใต้ทั้งหมด | `text-decoration: none;` | ตรงกัน |
+
+---
+
+## CSS Mapping ที่รองรับได้โดยตรง
+
+```css
+.single {
+    text-decoration-line: underline;
+}
+
+.double {
+    text-decoration-line: underline;
+    text-decoration-style: double;
+}
+
+.dotted {
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+}
+
+.dashed {
+    text-decoration-line: underline;
+    text-decoration-style: dashed;
+}
+
+.wavy {
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+}
+```
+
+---
+
+## กลุ่มที่ Browser รองรับได้ดี
+
+| Word Value | CSS Equivalent |
+|------------|----------------|
+| `single` | ✅ |
+| `double` | ✅ |
+| `dotted` | ✅ |
+| `dash` | ✅ |
+| `wave` | ✅ |
+| `thick` | ✅ |
+| `none` | ✅ |
+
+---
+
+## กลุ่มที่ต้องใช้ Custom Rendering
+
+| Word Value |
+|------------|
+| `dotDash` |
+| `dotDashHeavy` |
+| `dotDotDash` |
+| `dotDotDashHeavy` |
+| `dashLong` |
+| `dashLongHeavy` |
+| `wavyDouble` |
+
+แนวทางที่แนะนำ:
+
+- SVG Underline
+- Border Image
+- Pseudo Element (`::after`)
+- Canvas/SVG Renderer
+
+---
+
+## Recommendation สำหรับ DOCX → HTML Renderer
+
+```text
+single         → text-decoration
+double         → text-decoration-style:double
+dotted         → text-decoration-style:dotted
+dash           → text-decoration-style:dashed
+wave           → text-decoration-style:wavy
+thick          → text-decoration-thickness
+อื่น ๆ         → SVG Renderer
+```
+
+สำหรับ Renderer ที่ต้องการความเหมือน Word มากกว่า 95% ควร Render กลุ่ม `dotDash`, `dotDotDash`, `dashLong` และ `wavyDouble` ด้วย SVG แทน CSS เนื่องจาก CSS ยังไม่มี Mapping ที่ตรงกับรูปแบบของ Word อย่างสมบูรณ์
+
+---
+
 # Coverage
 
 เอกสารฉบับนี้ครอบคลุม OOXML ที่พบในเอกสาร Word ทั่วไปประมาณ 95%+
