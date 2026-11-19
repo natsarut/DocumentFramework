@@ -15,7 +15,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 builder.Services.AddFluentUIComponents();
-
+builder.Services.AddHealthChecks();
 builder.Services.AddScoped<IDocumentUploadValidator, DocumentUploadValidator>();
 builder.Services.AddScoped<IWordDocumentParser, OpenXmlWordParser>();
 builder.Services.AddScoped<IHtmlDocumentRenderer, HtmlDocumentRenderer>();
@@ -46,4 +46,5 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(TemplateGenerator.Client._Imports).Assembly);
 
+app.MapHealthChecks("/health");
 app.Run();

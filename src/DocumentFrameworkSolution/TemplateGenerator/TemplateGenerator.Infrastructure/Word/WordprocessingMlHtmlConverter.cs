@@ -393,11 +393,18 @@ internal sealed class WordprocessingMlHtmlConverter
             style["letter-spacing"] = (spacingValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt";
         }
 
-        string? underline = GetAttribute(FindRunProperty(sources, "u"), "val");
+        string? underlineValue = GetAttribute(FindRunProperty(sources, "u"), "val");
 
-        if (TryGetUnderlineStyle(underline, out var underlineStyle))
+        if (TryGetUnderlineStyle(underlineValue, out var underlineStyle))
         {
             style["text-decoration"] = underlineStyle;
+        }
+
+        string? underlineColor = GetAttribute(FindRunProperty(sources, "u"), "color");
+
+        if (IsHexColor(underlineColor))
+        {
+            style["text-decoration-color"] = $"#{underlineColor}";
         }
 
         if (IsOn(FindRunProperty(sources, "b")))
@@ -1293,9 +1300,9 @@ internal sealed class WordprocessingMlHtmlConverter
             "single" => "underline",
             "double" => "underline double",
             "dotted" => "underline dotted",
-            "dashed" => "underline dashed",
+            "dash" => "underline dashed",
             "wave" => "underline wavy",
-            "thick" => "underline solid",
+            "thick" => "underline 2px",
             _ => string.Empty
         };
         return style.Length > 0;
