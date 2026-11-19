@@ -1,3 +1,3 @@
 var builder = DistributedApplication.CreateBuilder(args);
-builder.AddProject<Projects.TemplateGenerator>("webui");
+builder.AddDotnetProject("webapp", "../TemplateGenerator/TemplateGenerator/TemplateGenerator.csproj");
 builder.Build().Run();

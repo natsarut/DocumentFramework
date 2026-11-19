@@ -60,11 +60,11 @@ internal sealed class WordprocessingMlHtmlConverter
                 var level = GetListLevel(element);
                 var isOrdered = IsOrderedList(listId!, level);
                 var tag = isOrdered ? "ol" : "ul";
-                output.Append("<").Append(tag).Append(" class=\"doc-list doc-list-level-").Append(level).Append("\">");
+                output.Append('<').Append(tag).Append(" class=\"doc-list doc-list-level-").Append(level).Append("\">");
                 while (index < blockElements.Length && NameIs(blockElements[index], "p") &&
                        GetNumberingId(blockElements[index]) == listId && GetListLevel(blockElements[index]) == level)
                 {
-                    output.Append("<li").Append(StyleAttribute(GetParagraphStyle(blockElements[index]))).Append(">");
+                    output.Append("<li").Append(StyleAttribute(GetParagraphStyle(blockElements[index]))).Append('>');
                     output.Append(ConvertParagraphContent(blockElements[index], cancellationToken));
                     output.Append("</li>");
                     index++;
@@ -479,7 +479,7 @@ internal sealed class WordprocessingMlHtmlConverter
                 (style.Count != segmentStyle.Count || style.Any(item => !segmentStyle.TryGetValue(item.Key, out var value) || value != item.Value)))
                 AppendSegment();
             segmentStyle = style;
-            segment.Append(runes[index].ToString());
+            segment.Append(runes[index]);
         }
         AppendSegment();
 
@@ -616,8 +616,8 @@ internal sealed class WordprocessingMlHtmlConverter
     {
         var (fontAttributes, themeAttributes) = slot switch
         {
-            "eastAsia" => (new[] { "eastAsia" }, new[] { "eastAsiaTheme" }),
-            "cs" => (new[] { "cs" }, new[] { "cstheme" }),
+            "eastAsia" => (["eastAsia"], ["eastAsiaTheme"]),
+            "cs" => (["cs"], ["cstheme"]),
             _ => (new[] { "ascii", "hAnsi" }, new[] { "asciiTheme", "hAnsiTheme" })
         };
 
@@ -688,7 +688,7 @@ internal sealed class WordprocessingMlHtmlConverter
         return null;
     }
 
-    private static IEnumerable<string> GetFontSlots(string text)
+    private static List<string> GetFontSlots(string text)
     {
         var slots = new List<string>();
         foreach (var rune in text.EnumerateRunes())
@@ -832,10 +832,10 @@ internal sealed class WordprocessingMlHtmlConverter
         return output.ToString();
     }
 
-    private static int GetRowSpan(IReadOnlyList<OpenXmlElement> rows, int rowIndex, int cellIndex)
+    private static int GetRowSpan(OpenXmlElement[] rows, int rowIndex, int cellIndex)
     {
         var span = 1;
-        for (var next = rowIndex + 1; next < rows.Count; next++)
+        for (var next = rowIndex + 1; next < rows.Length; next++)
         {
             var cells = rows[next].ChildElements.Where(child => NameIs(child, "tc")).ToArray();
             if (cellIndex >= cells.Length || FindChild(FindChild(cells[cellIndex], "tcPr"), "vMerge") is null)
@@ -883,7 +883,7 @@ internal sealed class WordprocessingMlHtmlConverter
         return FindChild(FindChild(defaults, "pPrDefault"), "pPr");
     }
 
-    private static void AddParagraphProperties(IDictionary<string, string> style, OpenXmlElement? properties)
+    private static void AddParagraphProperties(Dictionary<string, string> style, OpenXmlElement? properties)
     {
         var alignment = GetAttribute(FindChild(properties, "jc"), "val");
         if (alignment is not null)
@@ -933,7 +933,7 @@ internal sealed class WordprocessingMlHtmlConverter
         }
     }
 
-    private static void ApplyToggleProperty(IDictionary<string, string> style, OpenXmlElement? properties, string elementName, string cssProperty, string cssValue)
+    private static void ApplyToggleProperty(Dictionary<string, string> style, OpenXmlElement? properties, string elementName, string cssProperty, string cssValue)
     {
         if (FindChild(properties, elementName) is not { } element)
             return;
@@ -1187,7 +1187,7 @@ internal sealed class WordprocessingMlHtmlConverter
 
         if (width > 0 && height > 0)
         {
-            var screenMargins = string.Join("; ", new[] { "top", "right", "bottom", "left" }.Select(side =>
+            var screenMargins = string.Join("; ", sourceArray.Select(side =>
             {
                 var value = GetAttribute(margins, side);
                 var padding = TryTwips(value, out var points)
@@ -1203,7 +1203,7 @@ internal sealed class WordprocessingMlHtmlConverter
         }
     }
 
-    private static void AddTwips(IDictionary<string, string> style, string name, string? value)
+    private static void AddTwips(Dictionary<string, string> style, string name, string? value)
     {
         if (TryTwips(value, out var points))
             style[name] = points.ToString("0.##", CultureInfo.InvariantCulture) + "pt";
@@ -1220,7 +1220,7 @@ internal sealed class WordprocessingMlHtmlConverter
         return false;
     }
 
-    private static string StyleAttribute(IReadOnlyDictionary<string, string> style)
+    private static string StyleAttribute(Dictionary<string, string> style)
         => style.Count == 0 ? string.Empty : " style=\"" + Attr(string.Join(";", style.Select(item => item.Key + ":" + item.Value))) + "\"";
 
     private static string? SafeExternalUrl(string? value)
@@ -1341,4 +1341,5 @@ h4.doc-heading { font-size: 1.2rem; } h5.doc-heading { font-size: 1.05rem; } h6.
 .doc-tab { white-space: pre; }
 .doc-equation { font-family: "Cambria Math", serif; }
 """;
+    internal static readonly string[] sourceArray = ["top", "right", "bottom", "left"];
 }
