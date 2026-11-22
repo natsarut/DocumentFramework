@@ -60,11 +60,19 @@ internal sealed class WordprocessingMlHtmlConverter
                 var level = GetListLevel(element);
                 var isOrdered = IsOrderedList(listId!, level);
                 var tag = isOrdered ? "ol" : "ul";
-                output.Append('<').Append(tag).Append(" class=\"doc-list doc-list-level-").Append(level).Append("\">");
+                output.Append('<').Append(tag).Append(" class=\"doc-list doc-list-level-").Append(level).Append('"');
+                if (!isOrdered)
+                    output.Append(" style=\"list-style-type:").Append(GetUnorderedListStyleType(listId!, level)).Append(";\"");
+                output.Append('>');
                 while (index < blockElements.Length && NameIs(blockElements[index], "p") &&
                        GetNumberingId(blockElements[index]) == listId && GetListLevel(blockElements[index]) == level)
                 {
-                    output.Append("<li").Append(StyleAttribute(GetParagraphStyle(blockElements[index]))).Append('>');
+                    Dictionary<string, string> styleList = GetParagraphStyle(blockElements[index]);
+
+                    // Remove unnecessary style.
+                    styleList.Remove("margin-left");
+
+                    output.Append("<li").Append(StyleAttribute(styleList)).Append('>');
                     output.Append(ConvertParagraphContent(blockElements[index], cancellationToken));
                     output.Append("</li>");
                     index++;
@@ -906,7 +914,7 @@ internal sealed class WordprocessingMlHtmlConverter
             {
                 "exact" => (lineValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt",
                 "atLeast" => "max(1em, " + (lineValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt)",
-                _ => (lineValue / 240d).ToString("0.###", CultureInfo.InvariantCulture)
+                _ => (lineValue / 220d).ToString("0.###", CultureInfo.InvariantCulture)
             };
             style["line-height"] = lineHeight;
         }
@@ -953,14 +961,42 @@ internal sealed class WordprocessingMlHtmlConverter
 
     private bool IsOrderedList(string numId, int level)
     {
+        var format = GetAttribute(GetNumberingLevelProperty(numId, level, "numFmt"), "val");
+        return format is not ("bullet" or "none");
+    }
+
+    private string GetUnorderedListStyleType(string numId, int level)
+    {
+        var marker = GetAttribute(GetNumberingLevelProperty(numId, level, "lvlText"), "val");
+        if (GetAttribute(GetNumberingLevelProperty(numId, level, "numFmt"), "val") == "none" || string.IsNullOrEmpty(marker))
+            return "none";
+
+        return marker switch
+        {
+            "\uF0B7" or "\u2022" => "disc",
+            "o" or "\u25CB" or "\u25E6" => "circle",
+            "\uF0A7" or "\u25AA" or "\u25A0" => "square",
+            _ => "disc"
+        };
+    }
+
+    private OpenXmlElement? GetNumberingLevelProperty(string numId, int level, string propertyName)
+    {
         var numbering = _mainPart.NumberingDefinitionsPart?.Numbering;
-        if (numbering is null) return true;
+        if (numbering is null)
+            return null;
+
         var instance = numbering.ChildElements.FirstOrDefault(element => NameIs(element, "num") && GetAttribute(element, "numId") == numId);
+        var levelOverride = instance?.ChildElements.FirstOrDefault(element =>
+            NameIs(element, "lvlOverride") && ParsePositiveInt(GetAttribute(element, "ilvl"), 0) == level);
+        if (FindChild(FindChild(levelOverride, "lvl"), propertyName) is { } overriddenProperty)
+            return overriddenProperty;
+
         var abstractId = GetAttribute(instance is null ? null : FindChild(instance, "abstractNumId"), "val");
         var abstractNum = numbering.ChildElements.FirstOrDefault(element => NameIs(element, "abstractNum") && GetAttribute(element, "abstractNumId") == abstractId);
-        var levelElement = abstractNum?.ChildElements.FirstOrDefault(element => NameIs(element, "lvl") && ParsePositiveInt(GetAttribute(element, "ilvl"), 0) == level);
-        var format = GetAttribute(FindChild(levelElement, "numFmt"), "val");
-        return format is not ("bullet" or "none");
+        var levelElement = abstractNum?.ChildElements.FirstOrDefault(element =>
+            NameIs(element, "lvl") && ParsePositiveInt(GetAttribute(element, "ilvl"), 0) == level);
+        return FindChild(levelElement, propertyName);
     }
 
     private void AppendHeadersAndFooters(StringBuilder output, OpenXmlElement body, string referenceName, string elementName, CancellationToken cancellationToken)
@@ -1300,8 +1336,8 @@ internal sealed class WordprocessingMlHtmlConverter
             "single" => "underline",
             "double" => "underline double",
             "dotted" => "underline dotted",
-            "dash" => "underline dashed",
-            "wave" => "underline wavy",
+            "dash" => "underline dashed 1px",
+            "wave" => "underline wavy 1px",
             "thick" => "underline 2px",
             _ => string.Empty
         };
