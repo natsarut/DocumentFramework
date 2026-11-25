@@ -61,8 +61,12 @@ internal sealed class WordprocessingMlHtmlConverter
                 var isOrdered = IsOrderedList(listId!, level);
                 var tag = isOrdered ? "ol" : "ul";
                 output.Append('<').Append(tag).Append(" class=\"doc-list doc-list-level-").Append(level).Append('"');
+                var listStyle = new Dictionary<string, string>(StringComparer.Ordinal);
                 if (!isOrdered)
-                    output.Append(" style=\"list-style-type:").Append(GetUnorderedListStyleType(listId!, level)).Append(";\"");
+                    listStyle["list-style-type"] = GetUnorderedListStyleType(listId!, level);
+                if (ResolveNumberingMarkerFontFamily(element, listId!, level) is { } markerFont)
+                    listStyle["--doc-marker-font"] = QuoteCssFontFamily(markerFont);
+                output.Append(StyleAttribute(listStyle));
                 output.Append('>');
                 while (index < blockElements.Length && NameIs(blockElements[index], "p") &&
                        GetNumberingId(blockElements[index]) == listId && GetListLevel(blockElements[index]) == level)
@@ -965,6 +969,27 @@ internal sealed class WordprocessingMlHtmlConverter
         return format is not ("bullet" or "none");
     }
 
+    private string? ResolveNumberingMarkerFontFamily(OpenXmlElement paragraph, string numId, int level)
+    {
+        var levelElement = GetNumberingLevelElement(numId, level);
+        var markerText = GetAttribute(FindChild(levelElement, "lvlText"), "val") ?? string.Empty;
+        var paragraphRunProperties = FindChild(FindChild(paragraph, "pPr"), "rPr");
+        var rFonts = FindChild(paragraphRunProperties, "rFonts");
+
+        if (rFonts is not null)
+        {
+            var markerSlot = GetFontSlots(markerText).FirstOrDefault() ?? "ascii";
+            var markerFamily = ResolveDeclaredFont(rFonts, markerSlot, markerText);
+            if (!string.IsNullOrWhiteSpace(markerFamily))
+                return markerFamily;
+        }
+
+        var defaultFonts = FindChild(GetDocumentDefaultRunProperties(), "rFonts");
+        return defaultFonts is null
+            ? null
+            : ResolveDeclaredFont(defaultFonts, GetFontSlots(markerText).FirstOrDefault() ?? "ascii", markerText);
+    }
+
     private string GetUnorderedListStyleType(string numId, int level)
     {
         var marker = GetAttribute(GetNumberingLevelProperty(numId, level, "lvlText"), "val");
@@ -982,6 +1007,12 @@ internal sealed class WordprocessingMlHtmlConverter
 
     private OpenXmlElement? GetNumberingLevelProperty(string numId, int level, string propertyName)
     {
+        var levelElement = GetNumberingLevelElement(numId, level);
+        return FindChild(levelElement, propertyName);
+    }
+
+    private OpenXmlElement? GetNumberingLevelElement(string numId, int level)
+    {
         var numbering = _mainPart.NumberingDefinitionsPart?.Numbering;
         if (numbering is null)
             return null;
@@ -989,14 +1020,13 @@ internal sealed class WordprocessingMlHtmlConverter
         var instance = numbering.ChildElements.FirstOrDefault(element => NameIs(element, "num") && GetAttribute(element, "numId") == numId);
         var levelOverride = instance?.ChildElements.FirstOrDefault(element =>
             NameIs(element, "lvlOverride") && ParsePositiveInt(GetAttribute(element, "ilvl"), 0) == level);
-        if (FindChild(FindChild(levelOverride, "lvl"), propertyName) is { } overriddenProperty)
-            return overriddenProperty;
+        if (FindChild(levelOverride, "lvl") is { } overriddenLevel)
+            return overriddenLevel;
 
         var abstractId = GetAttribute(instance is null ? null : FindChild(instance, "abstractNumId"), "val");
         var abstractNum = numbering.ChildElements.FirstOrDefault(element => NameIs(element, "abstractNum") && GetAttribute(element, "abstractNumId") == abstractId);
-        var levelElement = abstractNum?.ChildElements.FirstOrDefault(element =>
+        return abstractNum?.ChildElements.FirstOrDefault(element =>
             NameIs(element, "lvl") && ParsePositiveInt(GetAttribute(element, "ilvl"), 0) == level);
-        return FindChild(levelElement, propertyName);
     }
 
     private void AppendHeadersAndFooters(StringBuilder output, OpenXmlElement body, string referenceName, string elementName, CancellationToken cancellationToken)
@@ -1372,6 +1402,7 @@ h4.doc-heading { font-size: 1.2rem; } h5.doc-heading { font-size: 1.05rem; } h6.
 .doc-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
 .doc-table th, .doc-table td { border: 1px solid #d1d5db; padding: 6px 8px; vertical-align: top; }
 .doc-list { margin: 0.25rem 0 0.75rem 1.5rem; padding-left: 0.75rem; }
+.doc-list li::marker { font-family: var(--doc-marker-font, inherit); }
 .doc-link { color: #1d4ed8; text-decoration: underline; }
 .doc-image { max-width: 100%; height: auto; object-fit: contain; }
 .doc-textbox, .doc-shape { display: inline-block; vertical-align: middle; }
