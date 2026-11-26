@@ -6,8 +6,7 @@ public sealed class DocumentUploadValidator : IDocumentUploadValidator
 {
     public void Validate(Stream stream, string fileName, long maxSizeBytes = 20L * 1024 * 1024)
     {
-        if (stream is null)
-            throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
 
         if (string.IsNullOrWhiteSpace(fileName))
             throw new ArgumentException("File name is required.", nameof(fileName));

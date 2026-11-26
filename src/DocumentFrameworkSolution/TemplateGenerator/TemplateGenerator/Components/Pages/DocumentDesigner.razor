@@ -98,6 +98,7 @@
 </div>
 
 @code {
+    private long _maxFileSize = 20L * 1024 * 1024;
     private string? _statusMessage;
     private string? _htmlPreview;
     private string? _browserPreviewUrl;
@@ -118,9 +119,9 @@
 
         try
         {
-            UploadValidator.Validate(file.OpenReadStream(), file.Name);
-
-            await using var stream = file.OpenReadStream(20L * 1024 * 1024);
+            using var stream = new MemoryStream();
+            await file.OpenReadStream(_maxFileSize).CopyToAsync(stream);
+            UploadValidator.Validate(stream, file.Name, _maxFileSize);
             var result = await DocumentConversionService.ParseWordAsync(stream);
             var htmlPreview = DocumentConversionService.RenderHtml(result);
             var previewUrl = await CreateBrowserPreviewUrlAsync(htmlPreview);

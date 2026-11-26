@@ -62,8 +62,16 @@ internal sealed class WordprocessingMlHtmlConverter
                 var tag = isOrdered ? "ol" : "ul";
                 output.Append('<').Append(tag).Append(" class=\"doc-list doc-list-level-").Append(level).Append('"');
                 var listStyle = new Dictionary<string, string>(StringComparer.Ordinal);
-                if (!isOrdered)
+
+                if (isOrdered)
+                {
+                    listStyle["list-style-type"] = GetOrderedListStyleType(listId!, level);
+                }
+                else
+                {
                     listStyle["list-style-type"] = GetUnorderedListStyleType(listId!, level);
+                }
+                    
                 if (ResolveNumberingMarkerFontFamily(element, listId!, level) is { } markerFont)
                     listStyle["--doc-marker-font"] = QuoteCssFontFamily(markerFont);
                 output.Append(StyleAttribute(listStyle));
@@ -918,7 +926,7 @@ internal sealed class WordprocessingMlHtmlConverter
             {
                 "exact" => (lineValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt",
                 "atLeast" => "max(1em, " + (lineValue / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt)",
-                _ => (lineValue / 220d).ToString("0.###", CultureInfo.InvariantCulture)
+                _ => (lineValue / 240d).ToString("0.###", CultureInfo.InvariantCulture)
             };
             style["line-height"] = lineHeight;
         }
@@ -990,6 +998,32 @@ internal sealed class WordprocessingMlHtmlConverter
             : ResolveDeclaredFont(defaultFonts, GetFontSlots(markerText).FirstOrDefault() ?? "ascii", markerText);
     }
 
+    /// <summary>
+    /// Gets the CSS ordered-list style type for a numbering level.
+    /// </summary>
+    /// <param name="numId">The numbering identifier.</param>
+    /// <param name="level">The numbering level.</param>
+    /// <returns>The CSS ordered-list style type, or <c>decimal</c> when the format is unsupported.</returns>
+    private string GetOrderedListStyleType(string numId, int level)
+    {
+        var format = GetAttribute(GetNumberingLevelProperty(numId, level, "numFmt"), "val");
+        return format switch
+        {
+            "decimal" => "decimal",
+            "lowerLetter" => "lower-alpha",
+            "upperLetter" => "upper-alpha",
+            "lowerRoman" => "lower-roman",
+            "upperRoman" => "upper-roman",
+            _ => "decimal"
+        };
+    }
+
+    /// <summary>
+    /// Gets the CSS unordered-list style type for a numbering level.
+    /// </summary>
+    /// <param name="numId">The numbering identifier.</param>
+    /// <param name="level">The numbering level.</param>
+    /// <returns>A style type of <c>disc</c>, <c>circle</c>, <c>square</c>, or <c>none</c>.</returns>
     private string GetUnorderedListStyleType(string numId, int level)
     {
         var marker = GetAttribute(GetNumberingLevelProperty(numId, level, "lvlText"), "val");
@@ -1279,7 +1313,7 @@ internal sealed class WordprocessingMlHtmlConverter
     private static void AddTwips(Dictionary<string, string> style, string name, string? value)
     {
         if (TryTwips(value, out var points))
-            style[name] = points.ToString("0.##", CultureInfo.InvariantCulture) + "pt";
+            style[name] = (points+1.5).ToString("0.##", CultureInfo.InvariantCulture) + "pt";
     }
 
     private static bool TryTwips(string? value, out double points)
@@ -1396,7 +1430,7 @@ internal sealed class WordprocessingMlHtmlConverter
     private const string DefaultDocumentCss = """
 h1.doc-heading { font-size: 2rem; } h2.doc-heading { font-size: 1.6rem; } h3.doc-heading { font-size: 1.35rem; }
 h4.doc-heading { font-size: 1.2rem; } h5.doc-heading { font-size: 1.05rem; } h6.doc-heading { font-size: 0.95rem; }
-.doc-root { font-family: "Segoe UI", Arial, sans-serif; color: #111; line-height: 1.15; background: #fff; }
+.doc-root { font-family: "Segoe UI", Arial, sans-serif; color: #111; line-height: 1; background: #fff; }
 .doc-paragraph { margin: 0; }
 .doc-heading { margin: 0; font-weight: normal; }
 .doc-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
