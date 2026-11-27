@@ -160,7 +160,6 @@ h3.doc-heading { font-size: 1.35rem; }
 
 .doc-table th,
 .doc-table td {
-  border: 1px solid #d1d5db;
   padding: 6px 8px;
   vertical-align: top;
   text-align: left;

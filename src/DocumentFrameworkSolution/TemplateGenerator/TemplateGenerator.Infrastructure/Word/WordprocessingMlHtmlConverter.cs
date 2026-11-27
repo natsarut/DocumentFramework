@@ -810,7 +810,9 @@ internal sealed class WordprocessingMlHtmlConverter
 
     private string ConvertTable(OpenXmlElement table, CancellationToken cancellationToken)
     {
-        var output = new StringBuilder("<table class=\"doc-table\">");
+        var tableBorders = FindChild(FindChild(table, "tblPr"), "tblBorders");
+        var tableClass = tableBorders is null ? "doc-table doc-table-default-borders" : "doc-table";
+        var output = new StringBuilder("<table class=\"").Append(tableClass).Append("\">");
         var grid = FindChild(table, "tblGrid");
         if (grid is not null)
         {
@@ -847,7 +849,7 @@ internal sealed class WordprocessingMlHtmlConverter
                 if (gridSpan > 1) attrs.Append(" colspan=\"").Append(gridSpan).Append('"');
                 var rowSpan = merge == "restart" ? GetRowSpan(rows, rowIndex, cellIndex) : 1;
                 if (rowSpan > 1) attrs.Append(" rowspan=\"").Append(rowSpan).Append('"');
-                var cellStyle = GetCellStyle(properties);
+                var cellStyle = GetCellStyle(properties, tableBorders, rowIndex, cellIndex, cells.Length, rows.Length);
                 if (cellStyle.Count > 0) attrs.Append(StyleAttribute(cellStyle));
                 output.Append('<').Append(tag).Append(attrs).Append('>');
                 AppendBlocks(output, cell.ChildElements, cancellationToken);
@@ -872,25 +874,57 @@ internal sealed class WordprocessingMlHtmlConverter
         return span;
     }
 
-    private static Dictionary<string, string> GetCellStyle(OpenXmlElement? properties)
+    private static Dictionary<string, string> GetCellStyle(
+        OpenXmlElement? properties,
+        OpenXmlElement? tableBorders,
+        int rowIndex,
+        int cellIndex,
+        int cellCount,
+        int rowCount)
     {
         var style = new Dictionary<string, string>(StringComparer.Ordinal);
         var shading = GetAttribute(FindChild(properties, "shd"), "fill");
         if (IsHexColor(shading)) style["background-color"] = "#" + shading;
         var vertical = GetAttribute(FindChild(properties, "vAlign"), "val");
         if (vertical is "top" or "center" or "bottom") style["vertical-align"] = vertical == "center" ? "middle" : vertical;
-        var borders = FindChild(properties, "tcBorders");
-        foreach (var side in new[] { "top", "right", "bottom", "left", "insideH", "insideV" })
+
+        var cellBorders = FindChild(properties, "tcBorders");
+        foreach (var side in new[] { "top", "right", "bottom", "left" })
         {
-            var border = FindChild(borders, side);
-            var value = GetAttribute(border, "val");
-            if (border is null || value is "nil" or "none") continue;
-            var size = ParsePositiveInt(GetAttribute(border, "sz"), 4) / 8d;
-            var color = GetAttribute(border, "color");
-            var cssSide = side switch { "insideH" => "bottom", "insideV" => "right", _ => side };
-            style["border-" + cssSide] = $"{size.ToString("0.##", CultureInfo.InvariantCulture)}pt solid {(IsHexColor(color) ? "#" + color : "#d1d5db")}";
+            var tableSide = side switch
+            {
+                "top" => rowIndex == 0 ? "top" : "insideH",
+                "bottom" => rowIndex == rowCount - 1 ? "bottom" : "insideH",
+                "left" => cellIndex == 0 ? "left" : "insideV",
+                _ => cellIndex == cellCount - 1 ? "right" : "insideV"
+            };
+            var border = FindChild(cellBorders, side) ?? FindChild(tableBorders, tableSide);
+            if (GetBorderCss(border) is { } borderCss)
+                style["border-" + side] = borderCss;
+        }
+
+        foreach (var side in new[] { "insideH", "insideV" })
+        {
+            var border = FindChild(cellBorders, side);
+            var cssSide = side == "insideH" ? "bottom" : "right";
+            if (GetBorderCss(border) is { } borderCss)
+                style["border-" + cssSide] = borderCss;
         }
         return style;
+    }
+
+    private static string? GetBorderCss(OpenXmlElement? border)
+    {
+        if (border is null)
+            return null;
+        var value = GetAttribute(border, "val");
+        if (value is "nil" or "none")
+            return "none";
+
+        var size = ParsePositiveInt(GetAttribute(border, "sz"), 4) / 8d;
+        var color = GetAttribute(border, "color");
+        var cssColor = IsHexColor(color) ? "#" + color : "#000000";
+        return $"{size.ToString("0.###", CultureInfo.InvariantCulture)}pt solid {cssColor}";
     }
 
     private Dictionary<string, string> GetParagraphStyle(OpenXmlElement paragraph)
@@ -1434,7 +1468,8 @@ h4.doc-heading { font-size: 1.2rem; } h5.doc-heading { font-size: 1.05rem; } h6.
 .doc-paragraph { margin: 0; }
 .doc-heading { margin: 0; font-weight: normal; }
 .doc-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
-.doc-table th, .doc-table td { border: 1px solid #d1d5db; padding: 6px 8px; vertical-align: top; }
+.doc-table th, .doc-table td { padding: 6px 8px; vertical-align: top; }
+.doc-table-default-borders th, .doc-table-default-borders td { border: 0.5pt solid #000; }
 .doc-list { margin: 0.25rem 0 0.75rem 1.5rem; padding-left: 0.75rem; }
 .doc-list li::marker { font-family: var(--doc-marker-font, inherit); }
 .doc-link { color: #1d4ed8; text-decoration: underline; }
